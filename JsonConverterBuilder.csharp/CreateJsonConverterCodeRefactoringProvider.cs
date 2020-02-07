@@ -25,11 +25,12 @@ namespace JsonConverterBuilder.csharp
             CancellationToken cancellationToken = context.CancellationToken;
 
             SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            SyntaxToken token = root.FindToken(textSpan.Start);
+            SyntaxToken token = root.FindToken(textSpan.Start);            
 
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-            if (token.Kind() == SyntaxKind.ClassDeclaration)
+            if (token.Kind() == SyntaxKind.IdentifierToken
+                && token.Parent.Kind() == SyntaxKind.ClassDeclaration )
             {
                 string className = token.Text;
                 CreateJsonConverterCodeAction action = new CreateJsonConverterCodeAction($"Create JsonConverter for {className}",

@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace SampleJsonConverterCode
 {
+    [JsonConverter(typeof(CJsonConverter))]
     public class C
     {
     }

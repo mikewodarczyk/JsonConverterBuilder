@@ -17,12 +17,18 @@ namespace JsonConverterBuilder.csharp.tests
         public void ReturnSimpleCase()
         {
             string initialCode =
-@"class C
+@"using System;
+
+class [|C|]
 {
 }";
 
             string expectedCode =
-@"[JsonConverter(typeof(CJsonConverter))]
+@"using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+[JsonConverter(typeof(CJsonConverter))]
 class C
 {
 }
