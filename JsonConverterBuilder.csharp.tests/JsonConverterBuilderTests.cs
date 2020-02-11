@@ -19,19 +19,25 @@ namespace JsonConverterBuilder.csharp.tests
             string initialCode =
 @"using System;
 
-class [|C|]
+namespace SampleJsonConverterCode
 {
-}";
+    class [|C|]
+    {
+    }
+}
+";
 
             string expectedCode =
 @"using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-[JsonConverter(typeof(CJsonConverter))]
-class C
+namespace SampleJsonConverterCode
 {
-}
+    [JsonConverter(typeof(CJsonConverter))]
+    class C
+    {
+    }
 
     public class CJsonConverter : JsonConverter<C>
     {
@@ -64,6 +70,7 @@ class C
             writer.WriteEndObject();
         }
     }
+}
 ";
 
             Test(initialCode, expectedCode);

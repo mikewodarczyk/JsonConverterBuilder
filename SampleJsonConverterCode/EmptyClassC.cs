@@ -4,14 +4,14 @@ using System.Text.Json.Serialization;
 
 namespace SampleJsonConverterCode
 {
-    [JsonConverter(typeof(CJsonConverter))]
-    public class C
+    [JsonConverter(typeof(EmptyClassCJsonConverter))]
+    public class EmptyClassC
     {
     }
 
-    public class CJsonConverter : JsonConverter<C>
+    public class EmptyClassCJsonConverter : JsonConverter<EmptyClassC>
     {
-        public override C Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override EmptyClassC Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             while(true)
             {
@@ -20,7 +20,7 @@ namespace SampleJsonConverterCode
                 {
                     case JsonTokenType.StartObject: break;
                     case JsonTokenType.EndObject:
-                        return new C();
+                        return new EmptyClassC();
                     case JsonTokenType.PropertyName:
                         switch(reader.GetString())
                         {
@@ -34,7 +34,7 @@ namespace SampleJsonConverterCode
             }
         }
 
-        public override void Write(Utf8JsonWriter writer, C value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, EmptyClassC value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
             writer.WriteEndObject();

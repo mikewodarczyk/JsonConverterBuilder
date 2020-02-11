@@ -24,7 +24,7 @@ namespace JsonConverterBuilder.csharp
             Microsoft.CodeAnalysis.Text.TextSpan textSpan = context.Span;
             CancellationToken cancellationToken = context.CancellationToken;
 
-            SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            CompilationUnitSyntax root = (CompilationUnitSyntax)await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             SyntaxToken token = root.FindToken(textSpan.Start);            
 
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
@@ -34,22 +34,60 @@ namespace JsonConverterBuilder.csharp
             {
                 string className = token.Text;
                 CreateJsonConverterCodeAction action = new CreateJsonConverterCodeAction($"Create JsonConverter for {className}",
-                    (c) => Task.FromResult(CreateJsonConverterForClass(document, semanticModel, className, c)));                
+                    (c) => Task.FromResult(CreateJsonConverterForClass(document, semanticModel, token, c)));                
                 context.RegisterRefactoring(action);
             }
         }
 
         private Document CreateJsonConverterForClass(Document document,
                                             SemanticModel semanticModel,
-                                            string className,                                            
+                                            SyntaxToken token,                                            
                                             CancellationToken cancellationToken)
         {
-            SyntaxNode oldRoot = semanticModel.SyntaxTree.GetRoot();
-            SyntaxNode newRoot = oldRoot;
+            string className = token.Text;
+            CompilationUnitSyntax oldRoot = (CompilationUnitSyntax)semanticModel.SyntaxTree.GetRoot();
+            CompilationUnitSyntax newRoot = AddUsingsIfMissing(oldRoot, token, "System.Text.Json");
 
             return document.WithSyntaxRoot(newRoot);
         }
 
+        private CompilationUnitSyntax AddUsingsIfMissing(CompilationUnitSyntax root, SyntaxToken token, string usingNamespace)
+        {
+            if (MissingUsingToken(root, usingNamespace))
+            {
+                // return AddUsings(root, token, usingNamespace);
+                return root;
+            }
+            return root;
+        }
+
+        private SyntaxNode GetNamespaceNode(SyntaxToken token)
+        {
+            var searchToken = token.Parent;
+            while (searchToken.Kind() != SyntaxKind.NamespaceDeclaration) { searchToken = searchToken.Parent; }
+            return searchToken;
+        }
+
+        private SyntaxNode CreateUsingNode(string usingNamespace)
+        {
+            throw new NotImplementedException();
+        }
+
+        private SyntaxNode AddUsings(SyntaxNode root, SyntaxToken token, string usingNaespace)
+        {
+            throw new NotImplementedException();
+        }
+
+        private bool MissingUsingToken(CompilationUnitSyntax root, string usingNamespace)
+        {
+            var ud = root.Usings[0];
+            var firstChildToken = ud.ChildNodes().First();
+            var tokens = ud.ChildNodes();
+
+
+
+            return root.Usings.Any(x => x.Name.ToString() == usingNamespace);
+        }
 
         private class CreateJsonConverterCodeAction : CodeAction
         {
