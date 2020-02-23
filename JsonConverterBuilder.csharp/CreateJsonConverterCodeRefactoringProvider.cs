@@ -48,10 +48,14 @@ namespace JsonConverterBuilder.csharp
             string className = token.Text;
             CompilationUnitSyntax oldRoot = (CompilationUnitSyntax)semanticModel.SyntaxTree.GetRoot();
             CompilationUnitSyntax newRoot = oldRoot.AddUsingsIfMissing(token, "System.Text.Json")
-                                                   .AddUsingsIfMissing(token, "System.Text.Json.Serialization")
-                                                   .AddAttributeForJsonConverter(token, className);
+                                                   .AddUsingsIfMissing(token, "System.Text.Json.Serialization");
+                                                   // .AddAttributeForJsonConverter(token, className);
 
-            return document.WithSyntaxRoot(newRoot);
+            AddJsonConverterSyntaxRewrier rewriter = new AddJsonConverterSyntaxRewrier(className,semanticModel);
+
+            SyntaxNode newSource = rewriter.Visit(newRoot);
+
+            return document.WithSyntaxRoot(newSource);
         }
 
       
@@ -143,10 +147,52 @@ namespace JsonConverterBuilder.csharp
 
 
                     SyntaxNode classDecWithAttribute = classDec.AddAttributeLists(newList);
-                    return root.ReplaceNode(classDec, classDecWithAttribute);                    
+                    SyntaxNode origNs = classDec.Parent;
+                    SyntaxNode ns = origNs.ReplaceNode(classDec, classDecWithAttribute);
+                    bool wasItThere = root.Contains(origNs);
+                    
+                    return root.ReplaceNode(origNs, ns);                    
                 }
             }
             return root;
+        }
+    }
+
+
+    public class AddJsonConverterSyntaxRewrier: CSharpSyntaxRewriter
+    {
+        public readonly string ClassName;
+        private readonly SemanticModel SemanticModel;
+
+        public AddJsonConverterSyntaxRewrier(string className, SemanticModel semanticModel)
+        {
+            ClassName = className;
+            SemanticModel = semanticModel;
+        }
+
+        public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
+        {
+            if (node.Identifier.Text == ClassName)
+            {
+                return node.WithAttributeLists(
+                    new SyntaxList<AttributeListSyntax>(
+                    AttributeList().AddAttributes(
+                        Attribute(IdentifierName("JsonConverter"),
+                        AttributeArgumentList(
+                            SeparatedList<AttributeArgumentSyntax>(
+                                new List<AttributeArgumentSyntax>() {
+                                    AttributeArgument(
+                                        TypeOfExpression(
+                                            IdentifierName(Identifier(ClassName + "JsonConverter")))
+                                        )
+                                    }
+                                )
+                            )))));
+            }
+            else
+            {
+                return base.VisitClassDeclaration(node);
+            }
         }
     }
 }
