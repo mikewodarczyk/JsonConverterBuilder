@@ -47,34 +47,27 @@ namespace JsonConverterBuilder.csharp
         {
             string className = token.Text;
             CompilationUnitSyntax oldRoot = (CompilationUnitSyntax)semanticModel.SyntaxTree.GetRoot();
-            CompilationUnitSyntax newRoot = oldRoot.AddUsingsIfMissing(token, "System.Text.Json")
-                                                   .AddUsingsIfMissing(token, "System.Text.Json.Serialization");
+            //CompilationUnitSyntax newRoot = oldRoot.AddUsingsIfMissing(token, "System.Text.Json")
+            //                                       .AddUsingsIfMissing(token, "System.Text.Json.Serialization");
                                                    // .AddAttributeForJsonConverter(token, className);
 
-            AddJsonConverterSyntaxRewrier rewriter = new AddJsonConverterSyntaxRewrier(className,semanticModel);
-
-            SyntaxNode newSource = rewriter.Visit(newRoot);
+            AddJsonAttributeConverterSyntaxRewrier rewriter = new AddJsonAttributeConverterSyntaxRewrier(className,semanticModel);
+            SyntaxNode newSource = rewriter.Visit(oldRoot);
 
             return document.WithSyntaxRoot(newSource);
         }
 
-      
 
-        private SyntaxNode GetNamespaceNode(SyntaxToken token)
-        {
-            var searchToken = token.Parent;
-            while (searchToken.Kind() != SyntaxKind.NamespaceDeclaration) { searchToken = searchToken.Parent; }
-            return searchToken;
-        }
 
-        private SyntaxNode CreateUsingNode(string usingNamespace)
-        {
-            throw new NotImplementedException();
-        }
+        //private SyntaxNode GetNamespaceNode(SyntaxToken token)
+        //{
+        //    var searchToken = token.Parent;
+        //    while (searchToken.Kind() != SyntaxKind.NamespaceDeclaration) { searchToken = searchToken.Parent; }
+        //    return searchToken;
+        //}       
 
-       
 
-     
+
         private class CreateJsonConverterCodeAction : CodeAction
         {
             private readonly string title;
@@ -93,88 +86,102 @@ namespace JsonConverterBuilder.csharp
                 return createChangedDocument(cancellationToken);
             }
         }
-
-    }
-    
-    public static class CompilationUnitSyntaxExtensions
-    {
-        public static CompilationUnitSyntax AddNewUsing(this CompilationUnitSyntax root, SyntaxToken token, string usingNamespace)
-        {
-            var name = IdentifierName(usingNamespace);
-            return root.AddUsings(UsingDirective(name).WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed));
-        }
-
-        public static bool MissingUsingToken(this CompilationUnitSyntax root, string usingNamespace)
-        {          
-            return !root.Usings.Any(x => x.Name.ToString() == usingNamespace);
-        }
-
-
-        public static CompilationUnitSyntax AddUsingsIfMissing(this CompilationUnitSyntax root, SyntaxToken token, string usingNamespace)
-        {
-            if (root.MissingUsingToken(usingNamespace))
-            {
-                return root.AddNewUsing(token, usingNamespace);               
-            }
-            return root;
-        }
-
-        public static CompilationUnitSyntax AddAttributeForJsonConverter(this CompilationUnitSyntax root, SyntaxToken token , string className)
-        {           
-            if (token != null )
-            {
-                ClassDeclarationSyntax classDec = token.Parent as ClassDeclarationSyntax;
-                if ( classDec.ChildTokens().All(n => 
-                n == null ||
-                n.Kind() != SyntaxKind.IdentifierName ||
-                n.Text == null ||
-                n.Text != "JsonConverter" ||
-                n.Parent == null || 
-                n.Parent.Kind() != SyntaxKind.Attribute))
-                {
-                    AttributeListSyntax newList = AttributeList().AddAttributes(
-                        Attribute(IdentifierName("JsonConverter"),
-                        AttributeArgumentList(
-                            SeparatedList<AttributeArgumentSyntax>(
-                                new List<AttributeArgumentSyntax>() {
-                                    AttributeArgument(
-                                        TypeOfExpression(
-                                            IdentifierName(Identifier(className + "JsonConverter")))
-                                        )
-                                    }                                    
-                                )
-                            )));
-
-
-                    SyntaxNode classDecWithAttribute = classDec.AddAttributeLists(newList);
-                    SyntaxNode origNs = classDec.Parent;
-                    SyntaxNode ns = origNs.ReplaceNode(classDec, classDecWithAttribute);
-                    bool wasItThere = root.Contains(origNs);
-                    
-                    return root.ReplaceNode(origNs, ns);                    
-                }
-            }
-            return root;
-        }
     }
 
+    //public static class CompilationUnitSyntaxExtensions
+    //{
+    //    public static CompilationUnitSyntax AddNewUsing(this CompilationUnitSyntax root, SyntaxToken token, string usingNamespace)
+    //    {
+    //        var name = IdentifierName(usingNamespace);
+    //        return root.AddUsings(UsingDirective(name).WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed));
+    //    }
 
-    public class AddJsonConverterSyntaxRewrier: CSharpSyntaxRewriter
+    //    public static bool MissingUsingToken(this CompilationUnitSyntax root, string usingNamespace)
+    //    {          
+    //        return !root.Usings.Any(x => x.Name.ToString() == usingNamespace);
+    //    }
+
+
+    //    public static CompilationUnitSyntax AddUsingsIfMissing(this CompilationUnitSyntax root, SyntaxToken token, string usingNamespace)
+    //    {
+    //        if (root.MissingUsingToken(usingNamespace))
+    //        {
+    //            return root.AddNewUsing(token, usingNamespace);               
+    //        }
+    //        return root;
+    //    }
+
+    //    //public static CompilationUnitSyntax AddAttributeForJsonConverter(this CompilationUnitSyntax root, SyntaxToken token , string className)
+    //    //{           
+    //    //    if (token != null )
+    //    //    {
+    //    //        ClassDeclarationSyntax classDec = token.Parent as ClassDeclarationSyntax;
+    //    //        if ( classDec.ChildTokens().All(n => 
+    //    //        n == null ||
+    //    //        n.Kind() != SyntaxKind.IdentifierName ||
+    //    //        n.Text == null ||
+    //    //        n.Text != "JsonConverter" ||
+    //    //        n.Parent == null || 
+    //    //        n.Parent.Kind() != SyntaxKind.Attribute))
+    //    //        {
+    //    //            AttributeListSyntax newList = AttributeList().AddAttributes(
+    //    //                Attribute(IdentifierName("JsonConverter"),
+    //    //                AttributeArgumentList(
+    //    //                    SeparatedList<AttributeArgumentSyntax>(
+    //    //                        new List<AttributeArgumentSyntax>() {
+    //    //                            AttributeArgument(
+    //    //                                TypeOfExpression(
+    //    //                                    IdentifierName(Identifier(className + "JsonConverter")))
+    //    //                                )
+    //    //                            }                                    
+    //    //                        )
+    //    //                    )));
+
+
+    //    //            SyntaxNode classDecWithAttribute = classDec.AddAttributeLists(newList);
+    //    //            SyntaxNode origNs = classDec.Parent;
+    //    //            SyntaxNode ns = origNs.ReplaceNode(classDec, classDecWithAttribute);
+    //    //            bool wasItThere = root.Contains(origNs);
+
+    //    //            return root.ReplaceNode(origNs, ns);                    
+    //    //        }
+    //    //    }
+    //    //    return root;
+    //    //}
+    //}
+
+
+    public class AddJsonAttributeConverterSyntaxRewrier : CSharpSyntaxRewriter
     {
         public readonly string ClassName;
         private readonly SemanticModel SemanticModel;
 
-        public AddJsonConverterSyntaxRewrier(string className, SemanticModel semanticModel)
+        public AddJsonAttributeConverterSyntaxRewrier(string className, SemanticModel semanticModel)
         {
             ClassName = className;
             SemanticModel = semanticModel;
+        }
+
+        public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
+        {
+            CompilationUnitSyntax result = node;
+            if ( result.Usings.All(u => u.Name.ToString() != "System.Text.Json"))
+            {
+                result = result.AddUsings(UsingDirective(IdentifierName("System.Text.Json")));
+            }
+            if (result.Usings.All(u => u.Name.ToString() != "System.Text.Json.Serialization"))
+            {
+                result = result.AddUsings(UsingDirective(IdentifierName("System.Text.Json.Serialization")));
+            }
+            return base.VisitCompilationUnit(result);
         }
 
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             if (node.Identifier.Text == ClassName)
             {
-                return node.WithAttributeLists(
+                return base.VisitClassDeclaration(
+                    node.WithAttributeLists(
                     new SyntaxList<AttributeListSyntax>(
                     AttributeList().AddAttributes(
                         Attribute(IdentifierName("JsonConverter"),
@@ -187,12 +194,96 @@ namespace JsonConverterBuilder.csharp
                                         )
                                     }
                                 )
-                            )))));
+                            )))))
+                    );
             }
             else
             {
                 return base.VisitClassDeclaration(node);
             }
         }
+    
+        public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
+        {
+
+            ClassDeclarationSyntax classDec = ClassDeclaration(ClassName + "JsonConverter")
+                .WithLeadingTrivia(CarriageReturnLineFeed)
+                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
+                .WithBaseList(BaseList(SeparatedList<BaseTypeSyntax>(
+                    new List<BaseTypeSyntax>() {
+                    SimpleBaseType(SyntaxFactory.ParseTypeName("JsonConverter<"+ClassName+">"))
+                    }
+                )));
+
+            classDec = classDec.AddMembers(
+                MethodDeclaration(IdentifierName(ClassName), "Read")
+                .WithModifiers(TokenList(
+                    Token(SyntaxKind.PublicKeyword),
+                    Token(SyntaxKind.OverrideKeyword)
+                    )
+                )
+                .WithParameterList(ParameterList(SeparatedList<ParameterSyntax>(
+                    new List<ParameterSyntax>() {
+                    Parameter(Identifier("reader")).WithType(IdentifierName("Utf8JsonReader"))
+                    .WithModifiers(TokenList(Token(SyntaxKind.RefKeyword)))
+                    ,
+                    Parameter(Identifier("typeToConvert")).WithType(IdentifierName("Type"))
+                    ,
+                    Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions"))
+                    }
+                )))
+                .WithBody(
+                    Block(
+
+                        WhileStatement(SyntaxFactory.ParseExpression("true"),
+                        Block(
+                            SyntaxFactory.ParseStatement("reader.Read();"),
+                           SwitchStatement(SyntaxFactory.ParseExpression("reader.SyntaxTokenType"),
+                            SwitchSection(
+                                DefaultSwitchLabel,BreakStatement())
+                            // SwitchSection(
+                            //    new  SyntaxList<SwitchLabelSyntax>(
+                            //     new List<SwitchLabelSyntax>()
+                            // {
+                            //     DefaultSwitchLabel()
+                            // })
+                            // ,
+                            // new SyntaxList<StatementSyntax>()
+                            //)
+                            ))
+
+                        )
+                )
+            ); ;
+
+            /*
+             *  
+            while(true)
+            {
+                reader.Read();
+                switch(reader.TokenType)
+                {
+                    case JsonTokenType.StartObject: break;
+                    case JsonTokenType.EndObject:
+                        return new C();
+                    case JsonTokenType.PropertyName:
+                        switch(reader.GetString())
+                        {
+                            default:
+                                break;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+             */
+
+
+            return base.VisitNamespaceDeclaration(  
+                node.AddMembers(classDec)                
+            );
+        }
+
     }
 }

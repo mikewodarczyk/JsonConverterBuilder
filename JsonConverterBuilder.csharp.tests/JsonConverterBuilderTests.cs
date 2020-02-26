@@ -43,7 +43,7 @@ namespace SampleJsonConverterCode
     {
         public override C Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            while(true)
+            while (true)
             {
                 reader.Read();
                 switch(reader.TokenType)
