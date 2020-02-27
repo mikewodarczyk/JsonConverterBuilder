@@ -46,9 +46,10 @@ namespace SampleJsonConverterCode
             while (true)
             {
                 reader.Read();
-                switch(reader.TokenType)
+                switch (reader.TokenType)
                 {
-                    case JsonTokenType.StartObject: break;
+                    case JsonTokenType.StartObject:
+                        break;
                     case JsonTokenType.EndObject:
                         return new C();
                     case JsonTokenType.PropertyName:

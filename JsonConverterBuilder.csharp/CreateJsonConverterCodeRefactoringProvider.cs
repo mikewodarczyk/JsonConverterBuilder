@@ -202,7 +202,7 @@ namespace JsonConverterBuilder.csharp
                 return base.VisitClassDeclaration(node);
             }
         }
-    
+
         public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
         {
 
@@ -238,23 +238,36 @@ namespace JsonConverterBuilder.csharp
                         WhileStatement(SyntaxFactory.ParseExpression("true"),
                         Block(
                             SyntaxFactory.ParseStatement("reader.Read();"),
-                           SwitchStatement(SyntaxFactory.ParseExpression("reader.SyntaxTokenType"),
+                           SwitchStatement(SyntaxFactory.ParseExpression("reader.TokenType"),
+                              new SyntaxList<SwitchSectionSyntax>(
+                                    new List<SwitchSectionSyntax>() {
                             SwitchSection(
-                                DefaultSwitchLabel,BreakStatement())
-                            // SwitchSection(
-                            //    new  SyntaxList<SwitchLabelSyntax>(
-                            //     new List<SwitchLabelSyntax>()
-                            // {
-                            //     DefaultSwitchLabel()
-                            // })
-                            // ,
-                            // new SyntaxList<StatementSyntax>()
-                            //)
-                            ))
+                               SingletonList<SwitchLabelSyntax>(
+                                  CaseSwitchLabel(IdentifierName("JsonTokenType.StartObject") 
+                                )      
+                              )
+                              ,
+                              SingletonList<StatementSyntax>(BreakStatement())
+                            ),
 
+                            SwitchSection(
+                               SingletonList<SwitchLabelSyntax>(
+                                  CaseSwitchLabel(IdentifierName("JsonTokenType.EndObject")
+                                )
+                              )
+                              ,
+                              SingletonList<StatementSyntax>(BreakStatement())
+                            ),
+
+                           SwitchSection(
+                              SingletonList<SwitchLabelSyntax>(DefaultSwitchLabel())
+                              ,
+                              SingletonList<StatementSyntax>(BreakStatement())                                
+                            )
+                           })
                         )
                 )
-            ); ;
+            )))); 
 
             /*
              *  
