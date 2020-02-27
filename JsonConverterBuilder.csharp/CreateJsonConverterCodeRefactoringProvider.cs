@@ -222,7 +222,7 @@ namespace JsonConverterBuilder.csharp
                     Token(SyntaxKind.OverrideKeyword)
                     )
                 )
-                .WithParameterList(ParameterList(SeparatedList<ParameterSyntax>(
+                .WithParameterList(ParameterList(SeparatedList(
                     new List<ParameterSyntax>() {
                     Parameter(Identifier("reader")).WithType(IdentifierName("Utf8JsonReader"))
                     .WithModifiers(TokenList(Token(SyntaxKind.RefKeyword)))
@@ -242,32 +242,41 @@ namespace JsonConverterBuilder.csharp
                               new SyntaxList<SwitchSectionSyntax>(
                                     new List<SwitchSectionSyntax>() {
                             SwitchSection(
-                               SingletonList<SwitchLabelSyntax>(
-                                  CaseSwitchLabel(IdentifierName("JsonTokenType.StartObject") 
-                                )      
-                              )
-                              ,
-                              SingletonList<StatementSyntax>(BreakStatement())
-                            ),
-
-                            SwitchSection(
-                               SingletonList<SwitchLabelSyntax>(
-                                  CaseSwitchLabel(IdentifierName("JsonTokenType.EndObject")
+                               SingletonList(
+(SwitchLabelSyntax)CaseSwitchLabel(IdentifierName("JsonTokenType.StartObject")
                                 )
                               )
                               ,
-                              SingletonList<StatementSyntax>(BreakStatement())
+                              SingletonList((StatementSyntax)BreakStatement())
+                            ),
+
+                            SwitchSection(
+                               SingletonList(
+(SwitchLabelSyntax)CaseSwitchLabel(IdentifierName("JsonTokenType.EndObject")
+                                )
+                              )
+                              ,
+                              SingletonList(ParseStatement("return new C();"))
+                            ),
+
+                            SwitchSection(
+                               SingletonList(
+(SwitchLabelSyntax)CaseSwitchLabel(IdentifierName("JsonTokenType.PropertyName")
+                                )
+                              )
+                              ,
+                              PropertiesSwitchStatement()
                             ),
 
                            SwitchSection(
-                              SingletonList<SwitchLabelSyntax>(DefaultSwitchLabel())
+                              SingletonList((SwitchLabelSyntax)DefaultSwitchLabel())
                               ,
-                              SingletonList<StatementSyntax>(BreakStatement())                                
+                              SingletonList((StatementSyntax)BreakStatement())
                             )
                            })
                         )
                 )
-            )))); 
+            ))));
 
             /*
              *  
@@ -293,10 +302,35 @@ namespace JsonConverterBuilder.csharp
              */
 
 
-            return base.VisitNamespaceDeclaration(  
-                node.AddMembers(classDec)                
+            return base.VisitNamespaceDeclaration(
+                node.AddMembers(classDec)
             );
         }
 
+        private static SyntaxList<StatementSyntax> PropertiesSwitchStatement()
+        {
+            List<SwitchSectionSyntax> statements = new List<SwitchSectionSyntax>();
+
+            statements.Add(SwitchSection(
+                              SingletonList((SwitchLabelSyntax)DefaultSwitchLabel())
+                              ,
+                              SingletonList((StatementSyntax)BreakStatement())
+                            )
+            );
+
+            SwitchStatementSyntax switchStatement = SwitchStatement(
+                SyntaxFactory.ParseExpression("reader.GetString()"),
+                new SyntaxList<SwitchSectionSyntax>(statements)
+             );
+            
+            return new SyntaxList<StatementSyntax>(
+                new SyntaxList<StatementSyntax>(
+                    new List<StatementSyntax>() {
+                         switchStatement,
+                         BreakStatement()
+                   }
+                )
+             );
+        }
     }
 }

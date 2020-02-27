@@ -53,11 +53,12 @@ namespace SampleJsonConverterCode
                     case JsonTokenType.EndObject:
                         return new C();
                     case JsonTokenType.PropertyName:
-                        switch(reader.GetString())
+                        switch (reader.GetString())
                         {
                             default:
                                 break;
                         }
+
                         break;
                     default:
                         break;
