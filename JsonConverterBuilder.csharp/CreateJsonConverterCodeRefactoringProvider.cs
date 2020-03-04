@@ -34,15 +34,18 @@ namespace JsonConverterBuilder.csharp
                 && token.Parent.Kind() == SyntaxKind.ClassDeclaration )
             {
                 string className = token.Text;
+               
+
                 CreateJsonConverterCodeAction action = new CreateJsonConverterCodeAction($"Create JsonConverter for {className}",
-                    (c) => Task.FromResult(CreateJsonConverterForClass(document, semanticModel, token, c)));                
+                    (c) => Task.FromResult(CreateJsonConverterForClass(document, semanticModel, token, root, c)));                
                 context.RegisterRefactoring(action);
             }
         }
 
         private Document CreateJsonConverterForClass(Document document,
                                             SemanticModel semanticModel,
-                                            SyntaxToken token,                                            
+                                            SyntaxToken token,
+                                            CompilationUnitSyntax root,
                                             CancellationToken cancellationToken)
         {
             string className = token.Text;
@@ -51,7 +54,7 @@ namespace JsonConverterBuilder.csharp
             //                                       .AddUsingsIfMissing(token, "System.Text.Json.Serialization");
                                                    // .AddAttributeForJsonConverter(token, className);
 
-            AddJsonAttributeConverterSyntaxRewrier rewriter = new AddJsonAttributeConverterSyntaxRewrier(className,semanticModel);
+            AddJsonAttributeConverterSyntaxRewrier rewriter = new AddJsonAttributeConverterSyntaxRewrier(className,semanticModel, root, token);
             SyntaxNode newSource = rewriter.Visit(oldRoot);
 
             return document.WithSyntaxRoot(newSource);
@@ -155,11 +158,17 @@ namespace JsonConverterBuilder.csharp
     {
         public readonly string ClassName;
         private readonly SemanticModel SemanticModel;
+        private readonly CompilationUnitSyntax OriginalRoot;
+        private readonly SyntaxToken Token;
 
-        public AddJsonAttributeConverterSyntaxRewrier(string className, SemanticModel semanticModel)
+        public AddJsonAttributeConverterSyntaxRewrier(string className, SemanticModel semanticModel, 
+            CompilationUnitSyntax root, 
+            SyntaxToken token)
         {
             ClassName = className;
             SemanticModel = semanticModel;
+            OriginalRoot = root;
+            Token = token;
         }
 
         public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
@@ -205,18 +214,31 @@ namespace JsonConverterBuilder.csharp
 
         public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
         {
+            ClassDeclarationSyntax classDec = CreateJsonConverterClassDeclaration();
 
+            return base.VisitNamespaceDeclaration(
+                node.AddMembers(classDec)
+            );
+        }
+
+        private ClassDeclarationSyntax CreateJsonConverterClassDeclaration()
+        {
             ClassDeclarationSyntax classDec = ClassDeclaration(ClassName + "JsonConverter")
-                .WithLeadingTrivia(CarriageReturnLineFeed)
-                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
-                .WithBaseList(BaseList(SeparatedList<BaseTypeSyntax>(
-                    new List<BaseTypeSyntax>() {
+                            .WithLeadingTrivia(CarriageReturnLineFeed)
+                            .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
+                            .WithBaseList(BaseList(SeparatedList<BaseTypeSyntax>(
+                                new List<BaseTypeSyntax>() {
                     SimpleBaseType(SyntaxFactory.ParseTypeName("JsonConverter<"+ClassName+">"))
-                    }
-                )));
+                                }
+                            )));
 
-            classDec = classDec.AddMembers(
-                MethodDeclaration(IdentifierName(ClassName), "Read")
+            return classDec.AddMembers(CreateReadMethod())
+                .AddMembers(CreateWriteMethod());
+        }
+
+        private MethodDeclarationSyntax CreateReadMethod()
+        {
+            return MethodDeclaration(IdentifierName(ClassName), "Read")
                 .WithModifiers(TokenList(
                     Token(SyntaxKind.PublicKeyword),
                     Token(SyntaxKind.OverrideKeyword)
@@ -232,9 +254,8 @@ namespace JsonConverterBuilder.csharp
                     Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions"))
                     }
                 )))
-                .WithBody(
-                    Block(
-
+                .WithBody(                    
+                        CreateVariableDeclarations(
                         WhileStatement(SyntaxFactory.ParseExpression("true"),
                         Block(
                             SyntaxFactory.ParseStatement("reader.Read();"),
@@ -275,37 +296,58 @@ namespace JsonConverterBuilder.csharp
                             )
                            })
                         )
+                           )
                 )
-            ))));
+            ));
+        }
 
-            /*
-             *  
-            while(true)
+        private BlockSyntax CreateVariableDeclarations(WhileStatementSyntax whileStatement)
+        {
+            BlockSyntax block = Block();
+            var properties = Token.Parent.DescendantNodes().Where(n => n.IsKind(SyntaxKind.PropertyDeclaration)).ToList();
+            foreach (var property in properties)
             {
-                reader.Read();
-                switch(reader.TokenType)
+                var si = SemanticModel.GetDeclaredSymbol(property) as IPropertySymbol;
+                if (si.DeclaredAccessibility == Accessibility.Public)
                 {
-                    case JsonTokenType.StartObject: break;
-                    case JsonTokenType.EndObject:
-                        return new C();
-                    case JsonTokenType.PropertyName:
-                        switch(reader.GetString())
-                        {
-                            default:
-                                break;
-                        }
-                        break;
-                    default:
-                        break;
+                    var n = si.Name;
+                    block = block.AddStatements(
+                        ParseStatement($"{si.Type}? {n} = null;")
+                        .WithTrailingTrivia(CarriageReturnLineFeed)
+                        .WithTrailingTrivia(ElasticSpace)
+                    );
                 }
             }
-             */
-
-
-            return base.VisitNamespaceDeclaration(
-                node.AddMembers(classDec)
-            );
+            block =  block.AddStatements(whileStatement);
+            return block;
         }
+
+        private MethodDeclarationSyntax CreateWriteMethod()
+        {
+            return MethodDeclaration(IdentifierName("void"), "Write")
+                .WithModifiers(TokenList(
+                    Token(SyntaxKind.PublicKeyword),
+                    Token(SyntaxKind.OverrideKeyword)
+                    )
+                )
+                .WithParameterList(ParameterList(SeparatedList(
+                    new List<ParameterSyntax>() {
+                        Parameter(Identifier("writer")).WithType(IdentifierName("Utf8JsonWriter"))
+                    ,
+                        Parameter(Identifier("value")).WithType(IdentifierName(ClassName))
+                    ,
+                        Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions"))
+                    }
+                )))
+                .WithBody(
+                    Block(
+                          SyntaxFactory.ParseStatement("writer.WriteStartObject();")
+                            .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed),
+                          SyntaxFactory.ParseStatement("writer.WriteEndObject();").WithLeadingTrivia(ElasticSpace)
+                        )
+                    );
+        }
+
 
         private static SyntaxList<StatementSyntax> PropertiesSwitchStatement()
         {
@@ -332,5 +374,8 @@ namespace JsonConverterBuilder.csharp
                 )
              );
         }
+
+
+
     }
 }
