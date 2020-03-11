@@ -91,13 +91,18 @@ namespace SampleJsonConverterCode
     {
         public string Name { get; }
         public int SomeInt { get; }
+        public string? MaybeAName { get; }
+        public int? MaybeAnInt { get; }
 
-        public SimpleVariables(string name, int someInt)
+        public SimpleVariables(string name, int someInt, string? maybeAName, int? maybeAnInt)
         {
             Name = name;
             SomeInt = someInt;
+            MaybeAName = maybeAName;
+            MaybeAnInt = maybeAnInt;
         }
     }
+}
 ";
 
             string expectedCode =
@@ -112,11 +117,15 @@ namespace SampleJsonConverterCode
     {
         public string Name { get; }
         public int SomeInt { get; }
+        public string? MaybeAName { get; }
+        public int? MaybeAnInt { get; }
 
-        public SimpleVariables(string name, int someInt)
+        public SimpleVariables(string name, int someInt, string? maybeAName, int? maybeAnInt)
         {
             Name = name;
             SomeInt = someInt;
+            MaybeAName = maybeAName;
+            MaybeAnInt = maybeAnInt;
         }
     }
 
@@ -126,6 +135,8 @@ namespace SampleJsonConverterCode
         {
             string? Name = null;
             int? SomeInt = null;
+            string? MaybeAName = null;
+            int? MaybeAnInt = null;
             while (true)
             {
                 reader.Read();
@@ -134,15 +145,9 @@ namespace SampleJsonConverterCode
                     case JsonTokenType.StartObject:
                         break;
                     case JsonTokenType.EndObject:
-                        if (Name != null &&
-                            SomeInt.HasValue)
-                        {
-                            return new SimpleVariables(Name, SomeInt.Value);
-                        } 
-                        else
-                        {
-                            throw new JsonException(""SimpleVariables missing property"");
-                        }
+                        if (Name == null) throw new JsonException(""SimpleVariables is missing property Name"");
+                        if (SomeInt == null) throw new JsonException(""SimpleVariables is missing property SomeInt"");
+                        return new SimpleVariables(Name, SomeInt.Value, MaybeAName, MaybeAnInt);
                     case JsonTokenType.PropertyName:
                         switch (reader.GetString())
                         {
@@ -154,9 +159,18 @@ namespace SampleJsonConverterCode
                                 reader.Read();
                                 SomeInt = reader.GetInt32();
                                 break;
+                            case nameof(SimpleVariables.MaybeAName):
+                                reader.Read();
+                                MaybeAName = reader.GetString();
+                                break;
+                            case nameof(SimpleVariables.MaybeAnInt):
+                                reader.Read();
+                                MaybeAnInt = reader.GetInt32();
+                                break;
                             default:
                                 break;
                         }
+
                         break;
                     default:
                         break;
@@ -167,8 +181,12 @@ namespace SampleJsonConverterCode
         public override void Write(Utf8JsonWriter writer, SimpleVariables value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            writer.WriteString(nameof(SimpleVariables.Name), value.Name);
-            writer.WriteNumber(nameof(SimpleVariables.SomeInt), value.SomeInt);
+            writer.WriteString(nameof(SimpleVariables.Name),value.Name);
+            writer.WriteNumber(nameof(SimpleVariables.SomeInt),value.SomeInt);
+            if (value.MaybeAName != null)
+                writer.WriteString(nameof(SimpleVariables.MaybeAName),value.MaybeAName);
+            if (value.MaybeAnInt != null)
+                writer.WriteNumber(nameof(SimpleVariables.MaybeAnInt),value.MaybeAnInt.Value);
             writer.WriteEndObject();
         }
     }

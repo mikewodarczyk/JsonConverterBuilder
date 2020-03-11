@@ -26,9 +26,29 @@ namespace JsonConverterBuilder.csharp
             CancellationToken cancellationToken = context.CancellationToken;
 
             CompilationUnitSyntax root = (CompilationUnitSyntax)await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            SyntaxToken token = root.FindToken(textSpan.Start);            
-
+            SyntaxToken token = root.FindToken(textSpan.Start);
+        //    var compilation = CSharpCompilation.Create("dummy").AddSyntaxTrees(root.SyntaxTree);
+        //    var diag = compilation.GetDiagnostics();
             SemanticModel semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+
+            //var properties = token.Parent.DescendantNodes().Where(n => n.IsKind(SyntaxKind.PropertyDeclaration)).ToList();
+            //foreach(var property in properties)
+            //{
+            //    PropertyDeclarationSyntax pds = property as PropertyDeclarationSyntax;
+            //    var si = semanticModel.GetSymbolInfo(property);
+            //    if (si.CandidateSymbols.Count() > 0)
+            //    {
+            //        si = si;
+            //    }
+            //    foreach (var cn in property.ChildNodes()) {
+            //        si = semanticModel.GetSymbolInfo(cn);
+            //        string txt = cn.ToString();
+            //        if (si.CandidateSymbols.Count() > 0 )
+            //        {
+            //            si = si;
+            //        }
+            //    }
+            //}
 
             if (token.Kind() == SyntaxKind.IdentifierToken
                 && token.Parent.Kind() == SyntaxKind.ClassDeclaration )
@@ -240,21 +260,21 @@ namespace JsonConverterBuilder.csharp
         {
             return MethodDeclaration(IdentifierName(ClassName), "Read")
                 .WithModifiers(TokenList(
-                    Token(SyntaxKind.PublicKeyword),
-                    Token(SyntaxKind.OverrideKeyword)
+                    SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                    SyntaxFactory.Token(SyntaxKind.OverrideKeyword)
                     )
                 )
                 .WithParameterList(ParameterList(SeparatedList(
                     new List<ParameterSyntax>() {
                     Parameter(Identifier("reader")).WithType(IdentifierName("Utf8JsonReader"))
-                    .WithModifiers(TokenList(Token(SyntaxKind.RefKeyword)))
+                    .WithModifiers(TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)))
                     ,
                     Parameter(Identifier("typeToConvert")).WithType(IdentifierName("Type"))
                     ,
                     Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions"))
                     }
                 )))
-                .WithBody(                    
+                .WithBody(
                         CreateVariableDeclarations(
                         WhileStatement(SyntaxFactory.ParseExpression("true"),
                         Block(
@@ -277,7 +297,7 @@ namespace JsonConverterBuilder.csharp
                                 )
                               )
                               ,
-                              SingletonList(ParseStatement("return new C();"))
+                              GenerateNewObjectStatements()
                             ),
 
                             SwitchSection(
@@ -301,6 +321,52 @@ namespace JsonConverterBuilder.csharp
             ));
         }
 
+        private SyntaxList<StatementSyntax> GenerateNewObjectStatements()
+        {
+            List<StatementSyntax> statements = new List<StatementSyntax>();
+            var properties = Token.Parent.DescendantNodes().Where(n => n.IsKind(SyntaxKind.PropertyDeclaration)).ToList();
+            List<string> parameterNames = new List<string>();
+            foreach (var property in properties)
+            {
+                var si = SemanticModel.GetDeclaredSymbol(property) as IPropertySymbol;
+                
+                if (si.DeclaredAccessibility == Accessibility.Public)
+                {
+                   var n = si.Name;
+                    var typeName = si.Type.ToString();
+                   bool isRequired = ! typeName.EndsWith("?");
+                    if (isRequired)
+                    {
+                        statements.Add(ParseStatement($"if ({n} == null) throw new JsonException(\"{ClassName} is missing property {n}\");")
+                                                            .WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+
+                        if (NeedsValue(typeName))
+                        {
+                            parameterNames.Add(si.Name + ".Value");
+                        }
+                        else
+                        {
+                            parameterNames.Add(si.Name);
+                        }
+                    }
+                    else
+                    {
+                        parameterNames.Add(n);
+                    }
+                }
+            }
+            
+            statements.Add(ParseStatement($"return new {ClassName}({String.Join(", ",parameterNames)});"));
+            return new SyntaxList<StatementSyntax>(statements);
+        }
+
+        private bool NeedsValue(string t)
+        {
+            if (t == "string") return false;
+            if (t == "string?") return false;
+            return true;
+        }
+
         private BlockSyntax CreateVariableDeclarations(WhileStatementSyntax whileStatement)
         {
             BlockSyntax block = Block();
@@ -311,14 +377,14 @@ namespace JsonConverterBuilder.csharp
                 if (si.DeclaredAccessibility == Accessibility.Public)
                 {
                     var n = si.Name;
-                    block = block.AddStatements(
-                        ParseStatement($"{si.Type}? {n} = null;")
+                    var variableSuffix = si.Type.ToString().EndsWith("?") ? "" : "?";
+                    block = block.AddStatements(ParseStatement($"{si.Type}{variableSuffix} {n} = null;")
                         .WithTrailingTrivia(CarriageReturnLineFeed)
-                        .WithTrailingTrivia(ElasticSpace)
-                    );
+                        .WithTrailingTrivia(ElasticSpace));
                 }
             }
-            block =  block.AddStatements(whileStatement);
+
+            block = block.AddStatements(whileStatement);
             return block;
         }
 
@@ -340,24 +406,102 @@ namespace JsonConverterBuilder.csharp
                     }
                 )))
                 .WithBody(
-                    Block(
-                          SyntaxFactory.ParseStatement("writer.WriteStartObject();")
-                            .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed),
-                          SyntaxFactory.ParseStatement("writer.WriteEndObject();").WithLeadingTrivia(ElasticSpace)
+                    Block( GenerateWriteStatements()
                         )
                     );
         }
 
+        private StatementSyntax[] GenerateWriteStatements()
+        {
+            List<StatementSyntax> statements = new List<StatementSyntax>();
+            statements.Add(SyntaxFactory.ParseStatement("writer.WriteStartObject();")
+              .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed));
 
-        private static SyntaxList<StatementSyntax> PropertiesSwitchStatement()
+            var properties = Token.Parent.DescendantNodes().Where(n => n.IsKind(SyntaxKind.PropertyDeclaration)).ToList();
+            foreach (var property in properties)
+            {
+                var si = SemanticModel.GetDeclaredSymbol(property) as IPropertySymbol;
+                if (si.DeclaredAccessibility == Accessibility.Public)
+                {
+                    var n = si.Name;
+                    var typeName = si.Type.ToString();
+                    var suffix = NeedsValue(typeName) ? ".Value" : "";
+
+                    if (si.Type.ToString().EndsWith("?"))
+                    {
+                        var ifStatement = IfStatement(
+                            ParseExpression($"value.{n} != null")
+                            ,
+                            ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{n}),value.{n}{suffix});").WithLeadingTrivia(ElasticCarriageReturnLineFeed)                            );
+                        statements.Add(ifStatement);
+                    }
+                    else
+                    {
+                        statements.Add(ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{n}),value.{n});").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+                    }
+                }
+            }
+
+            statements.Add(SyntaxFactory.ParseStatement("writer.WriteEndObject();").WithLeadingTrivia(ElasticSpace));
+            return statements.ToArray();
+        }
+
+        private string WriteMethod(string typeName)
+        {
+            return typeName switch
+            {
+                "int" => "WriteNumber",
+                "int?" => "WriteNumber",
+                "float" => "WriteNumber",
+                "float?" => "WriteNumber",
+                "double" => "WriteNumber",
+                "double?" => "WriteNumber",
+                "decimal" => "WriteNumber",
+                "decimal?" => "WriteNumber",
+                "string" => "WriteString",
+                "string?" => "WriteString",
+                "String" => "WriteString",
+                "String?" => "WriteString",
+                _ => "Write" + CapitilizeFirstChar(typeName)
+            };
+        }
+
+        private SyntaxList<StatementSyntax> PropertiesSwitchStatement()
         {
             List<SwitchSectionSyntax> statements = new List<SwitchSectionSyntax>();
 
+            // add switch statement for each property
+            var properties = Token.Parent.DescendantNodes().Where(n => n.IsKind(SyntaxKind.PropertyDeclaration)).ToList();
+            List<string> parameterNames = new List<string>();
+            foreach (var property in properties)
+            {
+                var si = SemanticModel.GetDeclaredSymbol(property) as IPropertySymbol;
+
+                if (si.DeclaredAccessibility == Accessibility.Public)
+                {
+                    var n = si.Name;
+                    var typeName = si.Type.ToString();
+          
+                    statements.Add(SwitchSection(
+                            SingletonList((SwitchLabelSyntax)CaseSwitchLabel(ParseExpression($"nameof({ClassName}.{n})")))
+                            ,
+                            new SyntaxList<StatementSyntax>(new List<StatementSyntax>()
+                            {
+                                ParseStatement("reader.Read();").WithLeadingTrivia(ElasticCarriageReturnLineFeed),
+                                ParseStatement($"{n} = reader.{GetTypeTranslation(typeName)}();").WithLeadingTrivia(ElasticCarriageReturnLineFeed),
+                                BreakStatement().WithLeadingTrivia(ElasticCarriageReturnLineFeed)
+                            })
+                        )
+                    ); ;
+                }
+            }
+
+
             statements.Add(SwitchSection(
-                              SingletonList((SwitchLabelSyntax)DefaultSwitchLabel())
-                              ,
-                              SingletonList((StatementSyntax)BreakStatement())
-                            )
+                    SingletonList((SwitchLabelSyntax)DefaultSwitchLabel())
+                    ,
+                    SingletonList((StatementSyntax)BreakStatement())
+                )
             );
 
             SwitchStatementSyntax switchStatement = SwitchStatement(
@@ -375,7 +519,31 @@ namespace JsonConverterBuilder.csharp
              );
         }
 
+        private string GetTypeTranslation(string getTypeName)
+        {
+            return getTypeName switch
+            {
+                "int" => "GetInt32",
+                "int?" => "GetInt32",
+                "string" => "GetString",
+                "string?" => "GetString",
+                "String" => "GetString",
+                "String?" => "GetString",
+                "double" => "GetDouble",
+                "double?" => "GetDouble",
+                "float" => "GetFloat",
+                "float?" => "GetFloat",
+                _ => "Get" + CapitilizeFirstChar(getTypeName)
+            };
+        }
 
-
+        private object CapitilizeFirstChar(string typeName)
+        {
+            if (typeName.Length == 0) return "";
+            if (typeName.Length == 1) return typeName.ToUpperInvariant();
+            
+            return typeName.Substring(0, 1).ToUpperInvariant() + typeName.Substring(1);
+            
+        }
     }
 }
