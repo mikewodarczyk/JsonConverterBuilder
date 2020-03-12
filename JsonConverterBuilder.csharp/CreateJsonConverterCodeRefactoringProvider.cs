@@ -340,7 +340,7 @@ namespace JsonConverterBuilder.csharp
                         statements.Add(ParseStatement($"if ({n} == null) throw new JsonException(\"{ClassName} is missing property {n}\");")
                                                             .WithTrailingTrivia(ElasticCarriageReturnLineFeed));
 
-                        if (NeedsValue(typeName))
+                        if (NeedsValueInConstructor(typeName))
                         {
                             parameterNames.Add(si.Name + ".Value");
                         }
@@ -360,11 +360,36 @@ namespace JsonConverterBuilder.csharp
             return new SyntaxList<StatementSyntax>(statements);
         }
 
+        private bool NeedsValueInConstructor(string t)
+        {
+            return t switch
+            {
+                "int" => true,
+                "int?" => true,
+                "double" => true,
+                "double?" => true,
+                "float" => true,
+                "float?" => true,
+                "decimal" => true,
+                "decimal?" => true,
+                "DateTime" => true,
+                "DateTime?" => true,
+                _ => false
+            };
+        }
+
+
         private bool NeedsValue(string t)
         {
-            if (t == "string") return false;
-            if (t == "string?") return false;
-            return true;
+            return t switch
+            {
+                "int?" => true,
+                "double?" => true,
+                "float?" => true,
+                "decimal?" => true,
+                "DateTime?" => true,
+                _ => false
+            };
         }
 
         private BlockSyntax CreateVariableDeclarations(WhileStatementSyntax whileStatement)
@@ -426,24 +451,35 @@ namespace JsonConverterBuilder.csharp
                     var n = si.Name;
                     var typeName = si.Type.ToString();
                     var suffix = NeedsValue(typeName) ? ".Value" : "";
+                    var toString = GetToStringMethod(typeName);
 
                     if (si.Type.ToString().EndsWith("?"))
                     {
                         var ifStatement = IfStatement(
                             ParseExpression($"value.{n} != null")
                             ,
-                            ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{n}),value.{n}{suffix});").WithLeadingTrivia(ElasticCarriageReturnLineFeed)                            );
+                            ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{n}),value.{n}{suffix}{toString});").WithLeadingTrivia(ElasticCarriageReturnLineFeed)                            );
                         statements.Add(ifStatement);
                     }
                     else
                     {
-                        statements.Add(ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{n}),value.{n});").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+                        statements.Add(ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{n}),value.{n}{toString});").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
                     }
                 }
             }
 
             statements.Add(SyntaxFactory.ParseStatement("writer.WriteEndObject();").WithLeadingTrivia(ElasticSpace));
             return statements.ToArray();
+        }
+
+        private object GetToStringMethod(string typeName)
+        {
+            return typeName switch
+            {
+                "DateTime" => ".ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\")",
+                "DateTime?" => ".ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\")",
+                _ => ""
+            };
         }
 
         private string WriteMethod(string typeName)
@@ -462,6 +498,8 @@ namespace JsonConverterBuilder.csharp
                 "string?" => "WriteString",
                 "String" => "WriteString",
                 "String?" => "WriteString",
+                "DateTime" => "WriteString",
+                "DateTime?" => "WriteString",
                 _ => "Write" + CapitilizeFirstChar(typeName)
             };
         }
@@ -533,6 +571,8 @@ namespace JsonConverterBuilder.csharp
                 "double?" => "GetDouble",
                 "float" => "GetFloat",
                 "float?" => "GetFloat",
+                "DateTime?" => "GetDateTime",
+                "DateTime" => "GetDateTime",
                 _ => "Get" + CapitilizeFirstChar(getTypeName)
             };
         }
