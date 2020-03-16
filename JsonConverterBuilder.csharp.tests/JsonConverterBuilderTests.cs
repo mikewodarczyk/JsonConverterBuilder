@@ -279,37 +279,44 @@ namespace SampleJsonConverterCode
                         if (SomeInts == null) throw new JsonException(""ClassWithListOfInts is missing property SomeInts"");
                         return new ClassWithListOfInts(SomeInts);
                     case JsonTokenType.PropertyName:
-                        reader.Read();
                         switch (reader.GetString())
                         {
                             case nameof(ClassWithListOfInts.SomeInts):
-                                bool inArray = true;
-                                while ( inArray  ) 
-                                {
-                                    reader.Read();
-                                    switch(reader.TokenType)
-                                    {
-                                        case JsonTokenType.StartArray:
-                                            SomeInts = new List<int>();
-                                            break;
-                                        case JsonTokenType.EndArray:
-                                            inArray = false;
-                                            break;
-                                        default:
-                                            SomeInts.Add(reader.GetInt32());
-                                            break;
-                                    }
-                                }
+                                SomeInts = ReadListInt(reader);
                                 break;
                             default:
                                 break;
                         }
+
                         break;
                     default:
                         break;
                 }
             }
         }
+
+        private static List<int>? ReadListInt(Utf8JsonReader reader)
+        {
+            bool inArray = true;
+            List<int>? someList = null;
+            while (inArray)
+            {
+                reader.Read();
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.StartArray:
+                        someList = new List<int>();
+                        break;
+                    case JsonTokenType.EndArray:
+                        inArray = false;
+                        break;
+                    default:
+                        someList?.Add(reader.GetInt32());
+                        break;
+                }
+            }
+            return someList;
+}
 
         public override void Write(Utf8JsonWriter writer, ClassWithListOfInts value, JsonSerializerOptions options)
         {
