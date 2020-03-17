@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace JsonConverterBuilder.csharp
 {
@@ -445,7 +446,7 @@ namespace JsonConverterBuilder.csharp
         {
             List<StatementSyntax> statements = new List<StatementSyntax>();
             statements.Add(SyntaxFactory.ParseStatement("writer.WriteStartObject();")
-              .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed));
+              .WithTrailingTrivia(SyntaxFactory.ElasticCarriageReturnLineFeed));
 
             var properties = Token.Parent.DescendantNodes().Where(n => n.IsKind(SyntaxKind.PropertyDeclaration)).ToList();
             foreach (var property in properties)
@@ -461,12 +462,15 @@ namespace JsonConverterBuilder.csharp
                         var ifStatement = IfStatement(
                             ParseExpression($"value.{n} != null")
                             ,
-                            CreateWriteStatement(typeName, n));
+                            Block(CreateWriteStatement(typeName, n)));
                         statements.Add(ifStatement);
                     }
                     else
                     {
-                        statements.Add(CreateWriteStatement(typeName, n));
+                        foreach (StatementSyntax stmt in CreateWriteStatement(typeName, n))
+                        {
+                            statements.Add(stmt);
+                        }
                     }
                 }
             }
@@ -475,18 +479,38 @@ namespace JsonConverterBuilder.csharp
             return statements.ToArray();
         }
 
-        private StatementSyntax CreateWriteStatement(string typeName, string parameterName)
+        private SyntaxList<StatementSyntax> CreateWriteStatement(string typeName, string parameterName)
         {
-            if (typeName.StartsWith("List<"))
+            List<StatementSyntax> statements = new List<StatementSyntax>();
+            if (IsListType(typeName))
             {
-
+                string subtype = ListSubtype(typeName);
+                statements.Add(ParseStatement($"writer.WritePropertyName(nameof({ClassName}.{parameterName}));").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                statements.Add(ParseStatement($"writer.WriteStartArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                statements.Add(ParseStatement($@"foreach({subtype} x in value.{parameterName})
+            {{
+                writer.{WriteMethod(subtype)}Value(x);
+            }}").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                statements.Add(ParseStatement($"writer.WriteEndArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
             }
-            else
+            else if (IsArrayType(typeName))
+            {
+                string subtype = ArraySubtype(typeName);
+                statements.Add(ParseStatement($"writer.WritePropertyName(nameof({ClassName}.{parameterName}));").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                statements.Add(ParseStatement($"writer.WriteStartArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                statements.Add(ParseStatement($@"foreach({subtype} x in value.{parameterName})
+            {{
+                writer.{WriteMethod(subtype)}Value(x);
+            }}").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                statements.Add(ParseStatement($"writer.WriteEndArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+            }
+            else            
             {
                 var toString = GetToStringMethod(typeName);
                 var suffix = NeedsValue(typeName) ? ".Value" : "";
-                return ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{parameterName}),value.{parameterName}{suffix}{toString});").WithLeadingTrivia(ElasticCarriageReturnLineFeed);
+                statements.Add(ParseStatement($"writer.{WriteMethod(typeName)}(nameof({ClassName}.{parameterName}),value.{parameterName}{suffix}{toString});").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
             }
+            return new SyntaxList<StatementSyntax>(statements);
         }
 
 
@@ -570,20 +594,53 @@ namespace JsonConverterBuilder.csharp
              );
         }
 
+        private bool IsArrayType(string typeName)
+        {
+            Regex arrayPattern = new Regex("[a-zA-Z0-9][[][]]");
+            return arrayPattern.IsMatch(typeName);
+        }
+        private string ArraySubtype(string typeName)
+        {
+            return typeName.Substring(0, typeName.Length - 2); // remove trailing []
+        }
+
+
+        private bool IsListType(string typeName)
+        {
+            return typeName.StartsWith("List<");
+        }
+
+        private string ListSubtype(string typeName)
+        {
+            return typeName.Substring(5, typeName.Length - 6); // remove Lit< and trailing >
+        }
+
 
         Dictionary<string, MethodDeclarationSyntax> GetListMethods = new Dictionary<string, MethodDeclarationSyntax>();
 
+        Dictionary<string, MethodDeclarationSyntax> GetArrayMethods = new Dictionary<string, MethodDeclarationSyntax>();
+
         private SyntaxList<StatementSyntax> CreateParameterReadStatements(string parameterName, string typeName)
         {
-            if ( typeName.StartsWith("List<"))
+            if ( IsListType(typeName))
             {
-                string listType = typeName.Substring(5, typeName.Length - 6); // remove Lit< and trailing >
+                string listType = ListSubtype(typeName);
                 if ( ! GetListMethods.ContainsKey(listType))
                 {
                     GetListMethods.Add(listType, CreateGetListMethod(listType));
                 }
                 return CreateListReadStatements(parameterName, listType);
             }
+            if (IsArrayType(typeName))
+            {
+                string listType = ArraySubtype(typeName);
+                if (!GetArrayMethods.ContainsKey(listType))
+                {
+                    GetArrayMethods.Add(listType, CreateGetArrayMethod(listType));
+                }
+                return CreateArrayReadStatements(parameterName, listType);
+            }
+
             return CreateSimpleParameterReadStatements(parameterName, typeName);            
         }
 
@@ -592,6 +649,13 @@ namespace JsonConverterBuilder.csharp
         {
             return $"ReadList{CapitilizeFirstChar(typeName)}";
         }
+
+        private string ReadArrayMethodName(string typeName)
+        {
+            return $"ReadArray{CapitilizeFirstChar(typeName)}";
+        }
+
+
         private MethodDeclarationSyntax CreateGetListMethod(string listType)
         {
 
@@ -630,6 +694,45 @@ namespace JsonConverterBuilder.csharp
 ")));      
         }
 
+        private MethodDeclarationSyntax CreateGetArrayMethod(string listType)
+        {
+
+            return MethodDeclaration(
+                 ParseTypeName(listType + "[]?"),
+                  ReadListMethodName(listType))
+              .WithModifiers(TokenList(
+                  SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                  SyntaxFactory.Token(SyntaxKind.StaticKeyword)
+                  )
+              )
+              .WithParameterList(ParameterList(SeparatedList(
+                  new List<ParameterSyntax>() {
+                    Parameter(Identifier("reader")).WithType(IdentifierName("Utf8JsonReader"))
+                  }
+              )))
+              .WithBody(Block(ParseStatement(@$" bool inArray = true;
+            List<int>? someList = null;
+            while (inArray)
+            {{
+                reader.Read();
+                switch (reader.TokenType)
+                {{
+                    case JsonTokenType.StartArray:
+                        someList = new List<int>();
+                        break;
+                    case JsonTokenType.EndArray:
+                        inArray = false;
+                        break;
+                    default:
+                        someList?.Add(reader.GetInt32());
+                        break;
+                }}
+            }}
+            return someList.ToArray();
+")));
+        }
+
+
         private SyntaxList<StatementSyntax> CreateListReadStatements(string parameterName, string typeName)
         {
             List<StatementSyntax> statements = new List<StatementSyntax>();
@@ -637,6 +740,15 @@ namespace JsonConverterBuilder.csharp
             statements.Add(BreakStatement().WithLeadingTrivia(ElasticCarriageReturnLineFeed));
             return new SyntaxList<StatementSyntax>(statements);
         }
+
+        private SyntaxList<StatementSyntax> CreateArrayReadStatements(string parameterName, string typeName)
+        {
+            List<StatementSyntax> statements = new List<StatementSyntax>();
+            statements.Add(ParseStatement($"{parameterName} = {ReadArrayMethodName(typeName)}(reader);").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+            statements.Add(BreakStatement().WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+            return new SyntaxList<StatementSyntax>(statements);
+        }
+
 
         private SyntaxList<StatementSyntax> CreateSimpleParameterReadStatements(string parameterName, string typeName)
         {

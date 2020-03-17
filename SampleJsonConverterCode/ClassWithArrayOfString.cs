@@ -7,22 +7,22 @@ using System.Text.Json.Serialization;
 
 namespace SampleJsonConverterCode
 {
-    [JsonConverter(typeof(ClassWithListOfIntsJsonConverter))]
-    public class ClassWithListOfInts
+    [JsonConverter(typeof(ClassWithArrayOfStringsJsonConverter))]
+    public class ClassWithArrayOfStrings
     {
-        public ClassWithListOfInts(List<int> someInts)
+        public ClassWithArrayOfStrings(string[] someStrings)
         {
-            SomeInts = someInts ?? throw new ArgumentNullException(nameof(someInts));
+            SomeStrings = someStrings ?? throw new ArgumentNullException(nameof(someStrings));
         }
 
-        public List<int> SomeInts { get; }
+        public string[] SomeStrings { get; }
     }
 
-    public class ClassWithListOfIntsJsonConverter : JsonConverter<ClassWithListOfInts>
+    public class ClassWithArrayOfStringsJsonConverter : JsonConverter<ClassWithArrayOfStrings>
     {
-        public override ClassWithListOfInts Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override ClassWithArrayOfStrings Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            List<int>? SomeInts = null;
+            string[]? SomeStrings = null;
             while (true)
             {
                 reader.Read();
@@ -31,13 +31,13 @@ namespace SampleJsonConverterCode
                     case JsonTokenType.StartObject:
                         break;
                     case JsonTokenType.EndObject:
-                        if (SomeInts == null) throw new JsonException("ClassWithListOfInts is missing property SomeInts");
-                        return new ClassWithListOfInts(SomeInts);
+                        if (SomeStrings == null) throw new JsonException("ClassWithArrayOfStrings is missing property SomeStrings");
+                        return new ClassWithArrayOfStrings(SomeStrings);
                     case JsonTokenType.PropertyName:
                         switch (reader.GetString())
                         {
                             case nameof(ClassWithListOfInts.SomeInts):
-                                SomeInts = ReadListInt(reader);
+                                SomeStrings = ReadArrayString(reader);
                                 break;
                             default:
                                 break;
@@ -50,37 +50,37 @@ namespace SampleJsonConverterCode
             }
         }
 
-        private static List<int>? ReadListInt(Utf8JsonReader reader)
+        private static string[]? ReadArrayString(Utf8JsonReader reader)
         {
             bool inArray = true;
-            List<int>? someList = null;
+            List<string>? someList = null;
             while (inArray)
             {
                 reader.Read();
                 switch (reader.TokenType)
                 {
                     case JsonTokenType.StartArray:
-                        someList = new List<int>();
+                        someList = new List<string>();
                         break;
                     case JsonTokenType.EndArray:
                         inArray = false;
                         break;
                     default:
-                        someList?.Add(reader.GetInt32());
+                        someList?.Add(reader.GetString());
                         break;
                 }
             }
-            return someList;
+            return someList?.ToArray();
         }
 
-        public override void Write(Utf8JsonWriter writer, ClassWithListOfInts value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, ClassWithArrayOfStrings value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
             writer.WritePropertyName(nameof(ClassWithListOfInts.SomeInts));
             writer.WriteStartArray();
-            foreach (int x in value.SomeInts)
+            foreach (string x in value.SomeStrings)
             {
-                writer.WriteNumberValue(x);
+                writer.WriteStringValue(x);
             }
 
             writer.WriteEndArray();
