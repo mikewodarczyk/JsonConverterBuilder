@@ -258,6 +258,10 @@ namespace JsonConverterBuilder.csharp
             {
                 classDec = classDec.AddMembers(GetListMethods[key]);
             }
+            foreach (string key in GetArrayMethods.Keys.OrderBy(x => x))
+            {
+                classDec = classDec.AddMembers(GetArrayMethods[key]);
+            }
             classDec = classDec.AddMembers(CreateWriteMethod());
             return classDec;
         }
@@ -673,20 +677,20 @@ namespace JsonConverterBuilder.csharp
                   }
               )))
               .WithBody(Block(ParseStatement(@$" bool inArray = true;
-            List<int>? someList = null;
+            List<{listType}>? someList = null;
             while (inArray)
             {{
                 reader.Read();
                 switch (reader.TokenType)
                 {{
                     case JsonTokenType.StartArray:
-                        someList = new List<int>();
+                        someList = new List<{listType}>();
                         break;
                     case JsonTokenType.EndArray:
                         inArray = false;
                         break;
                     default:
-                        someList?.Add(reader.GetInt32());
+                        someList?.Add(reader.{GetTypeTranslation(listType)}());
                         break;
                 }}
             }}
@@ -699,7 +703,7 @@ namespace JsonConverterBuilder.csharp
 
             return MethodDeclaration(
                  ParseTypeName(listType + "[]?"),
-                  ReadListMethodName(listType))
+                  ReadArrayMethodName(listType))
               .WithModifiers(TokenList(
                   SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                   SyntaxFactory.Token(SyntaxKind.StaticKeyword)
@@ -711,24 +715,24 @@ namespace JsonConverterBuilder.csharp
                   }
               )))
               .WithBody(Block(ParseStatement(@$" bool inArray = true;
-            List<int>? someList = null;
+            List<{listType}>? someList = null;
             while (inArray)
             {{
                 reader.Read();
                 switch (reader.TokenType)
                 {{
                     case JsonTokenType.StartArray:
-                        someList = new List<int>();
+                        someList = new List<{listType}>();
                         break;
                     case JsonTokenType.EndArray:
                         inArray = false;
                         break;
                     default:
-                        someList?.Add(reader.GetInt32());
+                        someList?.Add(reader.{GetTypeTranslation(listType)}());
                         break;
                 }}
             }}
-            return someList.ToArray();
+            return someList?.ToArray();
 ")));
         }
 
