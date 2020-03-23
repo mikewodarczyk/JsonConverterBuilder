@@ -49,7 +49,7 @@ using System.Text.Json.Serialization;
 
 namespace SampleJsonConverterCode
 {
-    [JsonConverter(typeof(ClassWithListOfIntsJsonConverter))]
+    [JsonConverter(typeof(ClassWithArrayOfStringsJsonConverter))]
     public class ClassWithArrayOfStrings
     {
         public ClassWithArrayOfStrings(string[] someStrings)
@@ -78,7 +78,7 @@ namespace SampleJsonConverterCode
                     case JsonTokenType.PropertyName:
                         switch (reader.GetString())
                         {
-                            case nameof(ClassWithListOfInts.SomeInts):
+                            case nameof(ClassWithArrayOfStrings.SomeStrings):
                                 SomeStrings = ReadArrayString(reader);
                                 break;
                             default:
@@ -113,12 +113,12 @@ namespace SampleJsonConverterCode
                 }
             }
             return someList?.ToArray();
-        }
+}
 
         public override void Write(Utf8JsonWriter writer, ClassWithArrayOfStrings value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            writer.WritePropertyName(nameof(ClassWithListOfInts.SomeInts));
+            writer.WritePropertyName(nameof(ClassWithArrayOfStrings.SomeStrings));
             writer.WriteStartArray();
             foreach (string x in value.SomeStrings)
             {
