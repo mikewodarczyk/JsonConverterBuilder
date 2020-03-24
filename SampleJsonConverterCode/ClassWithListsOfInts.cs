@@ -23,6 +23,7 @@ namespace SampleJsonConverterCode
         public override ClassWithListOfInts Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             List<int>? SomeInts = null;
+
             while (true)
             {
                 reader.Read();

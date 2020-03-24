@@ -8,41 +8,41 @@ using Xunit;
 
 namespace JsonConverterBuilder.csharp.tests
 {
-    public class ListOfIntsTest : CodeRefactoringProviderTestFixture
+    public class ClassWithPropertyOfAnotherClassTest : CodeRefactoringProviderTestFixture
     {
 
         protected override CodeRefactoringProvider CreateCodeRefactoringProvider => new CreateJsonConverterCodeRefactoringProvider();
 
         protected override string LanguageName => LanguageNames.CSharp;
-    
+
 
         [Fact]
-        public void JsonConverterListOfIntsTest()
+        public void JsonConverterArrayOfStringsTest()
         {
             string initialCode =
 @"using System;
-using System.Collections.Generic;
 
 #nullable enable
 
 namespace SampleJsonConverterCode
 {
-    public class [|ClassWithListOfInts|]
+    public class [|ClassWithPropertyOfAnotherClass|]
     {
-        public ClassWithListOfInts(List<int> someInts)
-        {
-            SomeInts = someInts ?? throw new ArgumentNullException(nameof(someInts));
-        }
+        public EmptyClassC AnotherClassObj { get; }
+        public EmptyClassC? MaybeAnotherClassObj { get; }
 
-        public List<int> SomeInts { get; }
+        public ClassWithPropertyOfAnotherClass(EmptyClassC anotherClassObj, EmptyClassC? maybeAnotherClassObj)
+        {
+            AnotherClassObj = anotherClassObj;
+            MaybeAnotherClassObj = maybeAnotherClassObj;
+        }
     }
 }
 ";
 
-            string expectedCode = GetExpectedResultFileContents("ClassWithListsOfInts.cs");
+            string expectedCode = GetExpectedResultFileContents("ClassWithPropertyOfAnotherClass.cs");
 
             Test(initialCode, expectedCode);
         }
-
     }
 }

@@ -13,20 +13,22 @@ namespace SampleJsonConverterCode
     {
         public override EmptyClassC Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            while(true)
+            while (true)
             {
                 reader.Read();
-                switch(reader.TokenType)
+                switch (reader.TokenType)
                 {
-                    case JsonTokenType.StartObject: break;
+                    case JsonTokenType.StartObject:
+                        break;
                     case JsonTokenType.EndObject:
                         return new EmptyClassC();
                     case JsonTokenType.PropertyName:
-                        switch(reader.GetString())
+                        switch (reader.GetString())
                         {
                             default:
                                 break;
                         }
+
                         break;
                     default:
                         break;

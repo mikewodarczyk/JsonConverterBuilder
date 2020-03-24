@@ -8,16 +8,16 @@ using Xunit;
 
 namespace JsonConverterBuilder.csharp.tests
 {
-    public class ListOfIntsTest : CodeRefactoringProviderTestFixture
+    public class DictionaryIntByStringTest : CodeRefactoringProviderTestFixture
     {
 
         protected override CodeRefactoringProvider CreateCodeRefactoringProvider => new CreateJsonConverterCodeRefactoringProvider();
 
         protected override string LanguageName => LanguageNames.CSharp;
-    
+
 
         [Fact]
-        public void JsonConverterListOfIntsTest()
+        public void JsonConverterArrayOfStringsTest()
         {
             string initialCode =
 @"using System;
@@ -27,22 +27,23 @@ using System.Collections.Generic;
 
 namespace SampleJsonConverterCode
 {
-    public class [|ClassWithListOfInts|]
+    public class [|ClassWithDictionaryOfIntsByString|]
     {
-        public ClassWithListOfInts(List<int> someInts)
-        {
-            SomeInts = someInts ?? throw new ArgumentNullException(nameof(someInts));
-        }
+        public Dictionary<string, int> SomeIntsByString { get; }
+        public Dictionary<string, int>? MaybeSomeIntsByString { get; }
 
-        public List<int> SomeInts { get; }
+        public ClassWithDictionaryOfIntsByString(Dictionary<string, int> someIntsByString, Dictionary<string, int>? maybeSomeIntsByString)
+        {
+            SomeIntsByString = someIntsByString;
+            MaybeSomeIntsByString = maybeSomeIntsByString;
+        }
     }
 }
 ";
 
-            string expectedCode = GetExpectedResultFileContents("ClassWithListsOfInts.cs");
+            string expectedCode = GetExpectedResultFileContents("ClassWithDictOfIntsByString.cs");
 
             Test(initialCode, expectedCode);
         }
-
     }
 }

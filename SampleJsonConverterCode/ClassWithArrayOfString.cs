@@ -23,6 +23,7 @@ namespace SampleJsonConverterCode
         public override ClassWithArrayOfStrings Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             string[]? SomeStrings = null;
+
             while (true)
             {
                 reader.Read();

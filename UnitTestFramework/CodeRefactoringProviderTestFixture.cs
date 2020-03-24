@@ -13,6 +13,13 @@ namespace Roslyn.UnitTestFramework
 {
     public abstract class CodeRefactoringProviderTestFixture : CodeActionProviderTestFixture
     {
+
+        protected string GetExpectedResultFileContents(string shortFilename)
+        {
+            string path = "../../../../SampleJsonConverterCode/" + shortFilename;
+            return System.IO.File.ReadAllText(path);
+        }
+
         private IEnumerable<CodeAction> GetRefactoring(Document document, TextSpan span)
         {
             CodeRefactoringProvider provider = CreateCodeRefactoringProvider;
