@@ -327,33 +327,35 @@ namespace JsonConverterBuilder.csharp
 
         private bool NeedsValueInConstructor(string t)
         {
-            return t switch
-            {
-                "int" => true,
-                "int?" => true,
-                "double" => true,
-                "double?" => true,
-                "float" => true,
-                "float?" => true,
-                "decimal" => true,
-                "decimal?" => true,
-                "DateTime" => true,
-                "DateTime?" => true,
-                _ => false
+            switch (t) { 
+            case "int":  return true;
+            case "int?": return true;
+            case "doble": return true;
+            case "double?": return true;
+            case "float": return true;
+            case "float?": return true;
+            case "decimal": return true;
+            case "decimal?": return true;
+            case "DateTime": return true;
+            case "DateTime?" : return true;
+                case "System.DateTime": return true;
+                case "System.DateTime?": return true;
+                default: return false;              
             };
         }
 
 
         private bool NeedsValue(string t)
         {
-            return t switch
+            switch (t)
             {
-                "int?" => true,
-                "double?" => true,
-                "float?" => true,
-                "decimal?" => true,
-                "DateTime?" => true,
-                _ => false
+                case "int?": return true;
+                case "double?":  return true;
+                case "float?": return true;
+                case "decimal?":  return true;
+                case "DateTime?":  return true;
+                case "System.DateTime?": return true;
+                default: return false;                
             };
         }
 
@@ -465,6 +467,7 @@ namespace JsonConverterBuilder.csharp
             ArrayType,
             DictionaryType,
             ObjectType,
+            DateTimeType,
             DefaultType
         }
 
@@ -474,6 +477,7 @@ namespace JsonConverterBuilder.csharp
             if (IsArrayType(typeName)) return TypeNameType.ArrayType;
             if (IsDictionaryType(typeName)) return TypeNameType.DictionaryType;
             if (IsObjectType(typeName)) return TypeNameType.ObjectType;
+            if (typeName == "DateTime" || typeName == "DateTime?") return TypeNameType.DateTimeType;
             return TypeNameType.DefaultType;
         }
 
@@ -481,7 +485,8 @@ namespace JsonConverterBuilder.csharp
         {
             List<StatementSyntax> statements = new List<StatementSyntax>();
 
-            switch (GetTypeNameType(typeName)) {
+            switch (GetTypeNameType(typeName)) 
+            {
                 case TypeNameType.ObjectType:
                     {
                         string objType = ObjectType(typeName);
@@ -531,7 +536,13 @@ namespace JsonConverterBuilder.csharp
                         }
                     }
                     break;
-                 default:
+                 case TypeNameType.DateTimeType:
+                    {
+                        var suffix = NeedsValue(typeName) ? ".Value" : "";
+                        statements.Add(ParseStatement($"writer.WriteString(nameof({ClassName}.{parameterName}),value.{parameterName}{suffix}.ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\"));").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+                    }
+                    break;
+                default:
                     {
                         var toString = GetToStringMethod(typeName);
                         var suffix = NeedsValue(typeName) ? ".Value" : "";
@@ -545,57 +556,70 @@ namespace JsonConverterBuilder.csharp
 
         private object GetToStringMethod(string typeName)
         {
-            return typeName switch
+            switch (typeName)
             {
-                "DateTime" => ".ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\")",
-                "DateTime?" => ".ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\")",
-                _ => ""
+                case "DateTime": return  ".ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\")";
+                case "DateTime?": return ".ToString(\"yyyy-MM-dd HH:mm:ss.ffffff\")";
+                default: return "";
             };
         }
 
         private string WriteMethod(string typeName)
         {
-            return typeName switch
+            switch (typeName)
             {
-                "int" => "WriteNumber",
-                "int?" => "WriteNumber",
-                "float" => "WriteNumber",
-                "float?" => "WriteNumber",
-                "double" => "WriteNumber",
-                "double?" => "WriteNumber",
-                "decimal" => "WriteNumber",
-                "decimal?" => "WriteNumber",
-                "string" => "WriteString",
-                "string?" => "WriteString",
-                "String" => "WriteString",
-                "String?" => "WriteString",
-                "DateTime" => "WriteString",
-                "DateTime?" => "WriteString",
-                _ => "Write" + CapitilizeFirstChar(typeName)
-            };
+                case "int": return "WriteNumber";
+                case "int?":
+                    return "WriteNumber";
+                case "float":
+                    return "WriteNumber";
+                case "float?":
+                    return "WriteNumber";
+                case "double":
+                    return "WriteNumber";
+                case "double?":
+                    return "WriteNumber";
+                case "decimal":
+                    return "WriteNumber";
+                case "decimal?":
+                    return "WriteNumber";
+                case "string":
+                    return "WriteString";
+                case "string?":
+                    return "WriteString";
+                case "String":
+                    return "WriteString";
+                case "String?":
+                    return "WriteString";
+                case "DateTime":
+                    return "WriteString";
+                case "DateTime?":
+                    return "WriteString";
+                default: return "Write" + CapitilizeFirstChar(typeName);
+            }
         }
 
 
         private string TypeToStringMethod(string typeName)
         {
-            return typeName switch
+            switch (typeName)
             {
-                "int" => ".ToString()",
-                "int?" => ".Value.ToString()",
-                "float" => ".ToString()",
-                "float?" => ".Value.ToString()",
-                "double" => ".ToString()",
-                "double?" => ".Value.ToString()",
-                "decimal" => ".ToString()",
-                "decimal?" => ".Value.ToString()",
-                "string" => "",
-                "string?" => ".Value",
-                "String" => "",
-                "String?" => ".Value",
-                "DateTime" => ".ToString(\"yyyy-MM-dd HH:mm:ss.fff\")",
-                "DateTime?" => ".Value.ToString(\"yyyy-MM-dd HH:mm:ss.fff\")",
-                _ => "Write" + CapitilizeFirstChar(typeName)
-            };
+               case  "int": return ".ToString()";
+               case "int?": return ".Value.ToString()";
+               case "float": return ".ToString()";
+               case "float?": return ".Value.ToString()";
+               case "double": return ".ToString()";
+               case "double?": return ".Value.ToString()";
+               case "decimal": return ".ToString()";
+               case "decimal?": return ".Value.ToString()";
+               case "string": return "";
+               case "string?": return ".Value";
+               case "String": return "";
+               case "String?": return ".Value";
+               case "DateTime": return ".ToString(\"yyyy-MM-dd HH:mm:ss.fff\")";
+               case "DateTime?": return ".Value.ToString(\"yyyy-MM-dd HH:mm:ss.fff\")";
+               default: return "Write" + CapitilizeFirstChar(typeName);
+            }
         }
 
 
@@ -676,7 +700,7 @@ namespace JsonConverterBuilder.csharp
         {
             string typeParts = typeName.Replace("Dictionary<", "");
             typeParts = typeParts.Substring(0, typeParts.Length - 1);
-            string[] parts = typeParts.Split(",");
+            string[] parts = typeParts.Split(',');
             return parts[0].Trim();
         }
         private string DictionaryValueType(string typeName)
@@ -690,7 +714,7 @@ namespace JsonConverterBuilder.csharp
             {
                 typeParts = typeParts.Substring(0, typeParts.Length - 1);
             }
-            string[] parts = typeParts.Split(",");
+            string[] parts = typeParts.Split(',');
             return parts[1].Trim();
         }
 
@@ -699,21 +723,21 @@ namespace JsonConverterBuilder.csharp
             if (IsDictionaryType(typeName)) return false;
             if (IsListType(typeName)) return false;
             if (IsArrayType(typeName)) return false;
-            return typeName switch
+            switch (typeName)
             {
-                "int" => false,
-                "int?" => false,
-                "float" => false,
-                "float?" => false,
-                "double" => false,
-                "double?" => false,
-                "DateTime" => false,
-                "DateTime?" => false,
-                "string" => false,
-                "String" => false,
-                "string?" => false,
-                "String?" => false,
-                _ => true
+                case "int": return false;
+                case "int?": return false;
+                case "float": return false;
+                case "float?": return false;
+                case "double": return false;
+                case "double?": return false;
+                case "DateTime": return false;
+                case "DateTime?": return false;
+                case "string": return false;
+                case "String": return false;
+                case "string?": return false;
+                case "String?": return false;
+                default: return true;
             };            
         }
 
@@ -777,6 +801,8 @@ namespace JsonConverterBuilder.csharp
                         }
                         return CreateDictionaryReadStatements(parameterName, keyType, valueType);
                     }
+                case TypeNameType.DateTimeType:
+                    return CreateDateTimeReadStatements(parameterName, typeName);
                 default:
                     return CreateSimpleParameterReadStatements(parameterName, typeName);
             }
@@ -871,8 +897,8 @@ namespace JsonConverterBuilder.csharp
                     Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions"))
                   }
               )))
-              .WithBody(Block(ParseStatement(@$"{objType}JsonConverter converter = new {objType}JsonConverter();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
-            ParseStatement(@$"return converter.Read(ref reader, typeof({objType}), options);").WithTrailingTrivia(ElasticCarriageReturnLineFeed).WithLeadingTrivia(Whitespace("            "))
+              .WithBody(Block(ParseStatement($@"{objType}JsonConverter converter = new {objType}JsonConverter();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement($@"return converter.Read(ref reader, typeof({objType}), options);").WithTrailingTrivia(ElasticCarriageReturnLineFeed).WithLeadingTrivia(Whitespace("            "))
             ));
         }
 
@@ -893,9 +919,9 @@ namespace JsonConverterBuilder.csharp
                     Parameter(Identifier("reader")).WithType(IdentifierName("Utf8JsonReader"))
                   }
               )))
-              .WithBody(Block(ParseStatement(@$" bool inArray = true;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
-            ParseStatement(@$"List<{listType}>? someList = null;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
-            ParseStatement(@$"while (inArray)
+              .WithBody(Block(ParseStatement($@" bool inArray = true;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement($@"List<{listType}>? someList = null;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement($@"while (inArray)
             {{
                 reader.Read();
                 switch (reader.TokenType)
@@ -911,7 +937,7 @@ namespace JsonConverterBuilder.csharp
                         break;
                 }}
             }}").WithTrailingTrivia(CarriageReturnLineFeed),
-            ParseStatement(@$"return someList;").WithTrailingTrivia(ElasticCarriageReturnLineFeed).WithLeadingTrivia(Whitespace("            "))
+            ParseStatement($@"return someList;").WithTrailingTrivia(ElasticCarriageReturnLineFeed).WithLeadingTrivia(Whitespace("            "))
             ));      
         }
 
@@ -931,9 +957,9 @@ namespace JsonConverterBuilder.csharp
                     Parameter(Identifier("reader")).WithType(IdentifierName("Utf8JsonReader"))
                   }
               )))
-              .WithBody(Block(ParseStatement(@$" bool inArray = true;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+              .WithBody(Block(ParseStatement(@" bool inArray = true;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
             ParseStatement($@"List<{listType}>? someList = null;").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
-            ParseStatement(@$"while (inArray)
+            ParseStatement($@"while (inArray)
             {{
                 reader.Read();
                 switch (reader.TokenType)
@@ -979,8 +1005,8 @@ namespace JsonConverterBuilder.csharp
                         }
                     )
                 )
-              .WithBody(Block(ParseStatement(@$"Dictionary<T1, {valueType}> dict = new Dictionary<T1, {valueType}>();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
-            ParseStatement(@$"while (true)
+              .WithBody(Block(ParseStatement($@"Dictionary<T1, {valueType}> dict = new Dictionary<T1, {valueType}>();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement($@"while (true)
             {{
                 reader.Read();
                 switch (reader.TokenType)
@@ -1033,7 +1059,17 @@ namespace JsonConverterBuilder.csharp
             statements.Add(BreakStatement().WithLeadingTrivia(ElasticCarriageReturnLineFeed));
             return new SyntaxList<StatementSyntax>(statements);
         }
-        
+
+
+        private SyntaxList<StatementSyntax> CreateDateTimeReadStatements(string parameterName, string typeName)
+        {
+            return new SyntaxList<StatementSyntax>(new List<StatementSyntax>()
+                            {
+                                ParseStatement("reader.Read();").WithLeadingTrivia(ElasticCarriageReturnLineFeed),
+                                ParseStatement($"{parameterName} = DateTime.Parse(reader.GetString());").WithLeadingTrivia(ElasticCarriageReturnLineFeed),
+                                BreakStatement().WithLeadingTrivia(ElasticCarriageReturnLineFeed)
+                            });
+        }
 
 
         private SyntaxList<StatementSyntax> CreateSimpleParameterReadStatements(string parameterName, string typeName)
@@ -1048,42 +1084,42 @@ namespace JsonConverterBuilder.csharp
 
         private string GetStringToTypeMethod(string typeName, string stringParameterName)
         {
-            return typeName switch
+            switch (typeName)
             {
-                "int" => $"int.Parse({stringParameterName})",
-                "int?" => $"int.Parse({stringParameterName})",
-                "string" => stringParameterName,
-                "string?" => stringParameterName,
-                "String" => stringParameterName,
-                "String?" => stringParameterName,
-                "double" => $"double.Parse({stringParameterName})",
-                "double?" => $"double.Parse({stringParameterName})",
-                "float" => $"float.Parse({stringParameterName})",
-                "float?" => $"float.Parse({stringParameterName})",
-                "DateTime?" => $"DateTime.Parse({stringParameterName})",
-                "DateTime" => $"DateTime.Parse({stringParameterName})",
-                _ => stringParameterName
+                case "int" : return $"int.Parse({stringParameterName})";
+                case "int?" : return $"int.Parse({stringParameterName})";
+                case "string" : return stringParameterName;
+                case "string?" : return stringParameterName;
+                case "String" : return stringParameterName;
+                case "String?" : return stringParameterName;
+                case "double" : return $"double.Parse({stringParameterName})";
+                case "double?" : return $"double.Parse({stringParameterName})";
+                case "float" : return $"float.Parse({stringParameterName})";
+                case "float?" : return $"float.Parse({stringParameterName})";
+                case "DateTime?" : return $"DateTime.Parse({stringParameterName})";
+                case "DateTime" : return $"DateTime.Parse({stringParameterName})";
+                    default: return stringParameterName;
             };
         }
 
 
         private string GetTypeTranslation(string getTypeName)
         {
-            return getTypeName switch
+            switch (getTypeName)
             {
-                "int" => "GetInt32",
-                "int?" => "GetInt32",
-                "string" => "GetString",
-                "string?" => "GetString",
-                "String" => "GetString",
-                "String?" => "GetString",
-                "double" => "GetDouble",
-                "double?" => "GetDouble",
-                "float" => "GetFloat",
-                "float?" => "GetFloat",
-                "DateTime?" => "GetDateTime",
-                "DateTime" => "GetDateTime",
-                _ => "Get" + CapitilizeFirstChar(getTypeName)
+                case "int" : return "GetInt32";
+                case "int?": return "GetInt32";
+                case "string": return "GetString";
+                case "string?": return "GetString";
+                case "String": return "GetString";
+                case "String?": return "GetString";
+                case "double": return "GetDouble";
+                case "double?": return "GetDouble";
+                case "float": return "GetFloat";
+                case "float?": return "GetFloat";
+                case "DateTime?": return "GetString";
+                case "DateTime": return "GetString";
+                default : return "Get" + CapitilizeFirstChar(getTypeName);
             };
         }
 

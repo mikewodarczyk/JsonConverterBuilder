@@ -63,7 +63,7 @@ namespace SampleJsonConverterCode
                                 break;
                             case nameof(SimpleVariables.ADateTime):
                                 reader.Read();
-                                ADateTime = reader.GetDateTime();
+                                ADateTime = DateTime.Parse(reader.GetString());
                                 break;
                             case nameof(SimpleVariables.MaybeAName):
                                 reader.Read();
@@ -75,7 +75,7 @@ namespace SampleJsonConverterCode
                                 break;
                             case nameof(SimpleVariables.MaybeADateTime):
                                 reader.Read();
-                                MaybeADateTime = reader.GetDateTime();
+                                MaybeADateTime = DateTime.Parse(reader.GetString());
                                 break;
                             default:
                                 break;
