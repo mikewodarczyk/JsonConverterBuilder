@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="JsonConverterWriter..b1203463-6a4e-46e2-bb3a-480b1c258f13" Version="1.1" Language="en-US" Publisher="MikeW"/>
+        <Identity Id="JsonConverterWriter..b1203463-6a4e-46e2-bb3a-480b1c258f13" Version="1.2" Language="en-US" Publisher="Mike Wodarczyk"/>
         <DisplayName>JsonConverterWriter</DisplayName>
-        <Description xml:space="preserve">This is a sample code refactoring extension for the .NET Compiler Platform ("Roslyn").</Description>
+        <Description xml:space="preserve">Highlight a class name with a full constructor and this will generate a JsonConverter for that class.Highlight a </Description>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0,)" />

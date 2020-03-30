@@ -731,6 +731,8 @@ namespace JsonConverterBuilder.csharp
                 case "float?": return false;
                 case "double": return false;
                 case "double?": return false;
+                case "decimal": return false;
+                case "decimal?": return false;
                 case "DateTime": return false;
                 case "DateTime?": return false;
                 case "string": return false;
@@ -1094,6 +1096,8 @@ namespace JsonConverterBuilder.csharp
                 case "String?" : return stringParameterName;
                 case "double" : return $"double.Parse({stringParameterName})";
                 case "double?" : return $"double.Parse({stringParameterName})";
+                case "decimal": return $"decimal.Parse({stringParameterName})";
+                case "decimal?": return $"decimal.Parse({stringParameterName})";
                 case "float" : return $"float.Parse({stringParameterName})";
                 case "float?" : return $"float.Parse({stringParameterName})";
                 case "DateTime?" : return $"DateTime.Parse({stringParameterName})";
@@ -1115,6 +1119,8 @@ namespace JsonConverterBuilder.csharp
                 case "String?": return "GetString";
                 case "double": return "GetDouble";
                 case "double?": return "GetDouble";
+                case "decimal": return "GetDecimal";
+                case "decimal?": return "GetDecimal";
                 case "float": return "GetFloat";
                 case "float?": return "GetFloat";
                 case "DateTime?": return "GetString";
