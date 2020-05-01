@@ -602,7 +602,7 @@ namespace JsonConverterBuilder.csharp
                     return "WriteString";
                 case "DateTime?":
                     return "WriteString";
-                default: return "Write" + CapitilizeFirstChar(typeName);
+                default: return "Write" + CapitalizeFirstLetterAndShortenTypename(typeName);
             }
         }
 
@@ -627,7 +627,7 @@ namespace JsonConverterBuilder.csharp
                case "String?": return ".Value";
                case "DateTime": return ".ToString(\"yyyy-MM-dd HH:mm:ss.fff\")";
                case "DateTime?": return ".Value.ToString(\"yyyy-MM-dd HH:mm:ss.fff\")";
-               default: return "Write" + CapitilizeFirstChar(typeName);
+               default: return "Write" + CapitalizeFirstLetterAndShortenTypename(typeName);
             }
         }
 
@@ -824,16 +824,16 @@ namespace JsonConverterBuilder.csharp
 
         private string ReadListMethodName(string typeName)
         {
-            return $"ReadList{CapitilizeFirstChar(typeName)}";
+            return $"ReadList{CapitalizeFirstLetterAndShortenTypename(typeName)}";
         }
         private string ReadDictionaryMethodName(string typeName, string keyType)
         {
-            return $"ReadDictionary{CapitilizeFirstChar(typeName)}<{keyType}>";
+            return $"ReadDictionary{CapitalizeFirstLetterAndShortenTypename(typeName)}<{keyType}>";
         }
 
         private string ReadArrayMethodName(string typeName)
         {
-            return $"ReadArray{CapitilizeFirstChar(typeName)}";
+            return $"ReadArray{CapitalizeFirstLetterAndShortenTypename(typeName)}";
         }
 
         private MethodDeclarationSyntax CreateWriteObjectMethod(string objType)
@@ -1140,17 +1140,21 @@ namespace JsonConverterBuilder.csharp
                 case "bool?": return "GetBoolean";
                 case "DateTime?": return "GetString";
                 case "DateTime": return "GetString";
-                default : return "Get" + CapitilizeFirstChar(getTypeName);
+                default : return "Get" + CapitalizeFirstLetterAndShortenTypename(getTypeName);
             };
         }
 
-        private object CapitilizeFirstChar(string typeName)
+        private object CapitalizeFirstLetterAndShortenTypename(string typeName)
         {
+            if ( typeName.Contains("."))
+            {
+                typeName = typeName.Split('.').Last();
+            }
+
             if (typeName.Length == 0) return "";
             if (typeName.Length == 1) return typeName.ToUpperInvariant();
             
-            return typeName.Substring(0, 1).ToUpperInvariant() + typeName.Substring(1);
-            
+            return typeName.Substring(0, 1).ToUpperInvariant() + typeName.Substring(1);            
         }
     }
 }
