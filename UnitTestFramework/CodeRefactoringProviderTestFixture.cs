@@ -8,11 +8,19 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Roslyn.UnitTestFramework
 {
     public abstract class CodeRefactoringProviderTestFixture : CodeActionProviderTestFixture
     {
+
+        protected string GetInitialCodeFileContents(string shortFilename)
+        {
+            string path = "../../../../SampleCodeBeforeConversion/" + shortFilename;
+            return System.IO.File.ReadAllText(path).Replace("/*[|*/","[|").Replace("/*|]*/","|]");
+        }
+
 
         protected string GetExpectedResultFileContents(string shortFilename)
         {
@@ -47,6 +55,7 @@ namespace Roslyn.UnitTestFramework
         protected void Test(
             string markup,
             string expected,
+            ITestOutputHelper output = null,
             int actionIndex = 0,
             bool compareTokens = false)
         {
@@ -71,7 +80,7 @@ namespace Roslyn.UnitTestFramework
             Assert.NotNull(action);
 
             ApplyChangesOperation edit = action.GetOperationsAsync(CancellationToken.None).Result.OfType<ApplyChangesOperation>().First();
-            VerifyDocument(expected, compareTokens, edit.ChangedSolution.GetDocument(document.Id));
+            VerifyDocument(expected, compareTokens, edit.ChangedSolution.GetDocument(document.Id),output);
         }
 
         protected abstract CodeRefactoringProvider CreateCodeRefactoringProvider { get; }

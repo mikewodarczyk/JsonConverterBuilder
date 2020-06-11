@@ -46,5 +46,34 @@ namespace DrBronners.PricingChangeSchema
             Test(initialCode, expectedCode);
         }
 
+
+        [Fact]
+        public void BoolAndBooleanTest()
+        {
+            string initialCode =
+@"using System;
+
+namespace SampleJsonConverterCode
+{
+    public class [|ClassContainingBoolean|]
+    {
+        public ClassContainingBoolean(bool aBoolVar, bool aBooleanVar)
+        {
+            this.ABoolVar = aBoolVar;
+            this.ABooleanVar = aBooleanVar;
+        }
+
+        public bool ABoolVar { get;  }
+        public Boolean ABooleanVar { get; }
+    }
+}
+";
+
+            string expectedCode = GetExpectedResultFileContents("ClassContainingBoolean.cs");
+
+            Test(initialCode, expectedCode);
+        }
+
+
     }
 }

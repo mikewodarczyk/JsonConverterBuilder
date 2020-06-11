@@ -218,6 +218,10 @@ namespace JsonConverterBuilder.csharp
             {
                 classDec = classDec.AddMembers(WriteObjectMethods[key]);
             }
+            foreach (string key in WriteListMethods.Keys.OrderBy(x => x))
+            {
+                classDec = classDec.AddMembers(WriteListMethods[key]);
+            }
             return classDec;
         }
 
@@ -338,6 +342,8 @@ namespace JsonConverterBuilder.csharp
             case "decimal?": return true;
             case "bool": return true;
             case "bool?": return true;
+            case "Boolean": return true;
+            case "Boolean?": return true;
             case "DateTime": return true;
             case "DateTime?" : return true;
                 case "System.DateTime": return true;
@@ -362,6 +368,34 @@ namespace JsonConverterBuilder.csharp
             };
         }
 
+        private string ShortenClassNameInList(string original)
+        {
+            if (original.EndsWith("?"))
+            {
+                return ShortenClassNameInList(original.Substring(0, original.Length - 1)) + "?";
+            }
+            else
+            {
+                if (original.StartsWith("List<"))
+                {
+                    string innerClassName = original.Substring(5, original.Length - 6);
+                    return "List<" + ShortenClassNameInList(innerClassName) + ">";
+                }
+                else
+                {
+                    if (original.Contains("."))
+                    {
+                        return original.Substring(original.LastIndexOf(".") + 1);
+                    }
+                    else
+                    {
+                        return original;
+                    }
+                }
+            }
+        }
+
+
         private BlockSyntax CreateVariableDeclarations(WhileStatementSyntax whileStatement)
         {
             BlockSyntax block = Block();
@@ -372,8 +406,9 @@ namespace JsonConverterBuilder.csharp
                 if (si.DeclaredAccessibility == Accessibility.Public)
                 {
                     var n = si.Name;
+                    string typeName = ShortenClassNameInList(si.Type.ToString());
                     var variableSuffix = si.Type.ToString().EndsWith("?") ? "" : "?";
-                    block = block.AddStatements(ParseStatement($"{si.Type}{variableSuffix} {n} = null;")
+                    block = block.AddStatements(ParseStatement($"{typeName}{variableSuffix} {n} = null;")
                         .WithTrailingTrivia(ElasticCarriageReturnLineFeed)
                         );
                 }
@@ -516,13 +551,25 @@ namespace JsonConverterBuilder.csharp
                 case TypeNameType.ListType:
                     {
                         string subtype = ListSubtype(typeName);
-                        statements.Add(ParseStatement($"writer.WritePropertyName(nameof({ClassName}.{parameterName}));").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
-                        statements.Add(ParseStatement($"writer.WriteStartArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
-                        statements.Add(ParseStatement($@"foreach({subtype} x in value.{parameterName})
+                        string methodType = GetListReadProviderTypeTranslation(subtype);
+                        if (methodType == "Template")
+                        {
+                            if (!WriteListMethods.ContainsKey(methodType))
+                            {
+                                WriteListMethods.Add(methodType, CreateWriteListMethod());
+                            }
+                            statements.Add(ParseStatement($"WriteList<{subtype}>(writer,nameof({ClassName}.{parameterName}),value.{parameterName},options,new {subtype}JsonConverter());").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                        }
+                        else
+                        {
+                            statements.Add(ParseStatement($"writer.WritePropertyName(nameof({ClassName}.{parameterName}));").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                            statements.Add(ParseStatement($"writer.WriteStartArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                            statements.Add(ParseStatement($@"foreach({subtype} x in value.{parameterName})
             {{
                 writer.{WriteMethod(subtype)}Value(x);
             }}").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
-                        statements.Add(ParseStatement($"writer.WriteEndArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                            statements.Add(ParseStatement($"writer.WriteEndArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed));
+                        }
                     }
                     break;
                 case TypeNameType.ArrayType:
@@ -597,6 +644,10 @@ namespace JsonConverterBuilder.csharp
                 case "bool":
                     return "WriteBoolean";
                 case "bool?":
+                    return "WriteBoolean";
+                case "Boolean":
+                    return "WriteBoolean";
+                case "Boolean?":
                     return "WriteBoolean";
                 case "DateTime":
                     return "WriteString";
@@ -697,7 +748,8 @@ namespace JsonConverterBuilder.csharp
         }
         private string ListSubtype(string typeName)
         {
-            return typeName.Substring(5, typeName.Length - 6); // remove Lit< and trailing >
+            if ( typeName.EndsWith("?")) { return ListSubtype(typeName.Substring(0, typeName.Length - 1)); }
+            return ShortenClassNameInList(typeName.Substring(5, typeName.Length - 6)); // remove List< and trailing >
         }
 
         private bool IsDictionaryType(string typeName)
@@ -744,6 +796,8 @@ namespace JsonConverterBuilder.csharp
                 case "decimal?": return false;
                 case "bool": return false;
                 case "bool?": return false;
+                case "Boolean": return false;
+                case "Boolean?": return false;
                 case "DateTime": return false;
                 case "DateTime?": return false;
                 case "string": return false;
@@ -768,6 +822,8 @@ namespace JsonConverterBuilder.csharp
 
         Dictionary<string, MethodDeclarationSyntax> WriteObjectMethods = new Dictionary<string, MethodDeclarationSyntax>();
 
+        Dictionary<string, MethodDeclarationSyntax> WriteListMethods = new Dictionary<string, MethodDeclarationSyntax>();
+
         Dictionary<string, MethodDeclarationSyntax> WriteDictionaryMethods = new Dictionary<string, MethodDeclarationSyntax>();
 
         Dictionary<string, MethodDeclarationSyntax> GetObjectMethods = new Dictionary<string, MethodDeclarationSyntax>();
@@ -789,11 +845,23 @@ namespace JsonConverterBuilder.csharp
                 case TypeNameType.ListType:
                     {
                         string listType = ListSubtype(typeName);
-                        if (!GetListMethods.ContainsKey(listType))
+                        string methodType = GetListReadProviderTypeTranslation(listType);
+                        if (methodType == "Template")
                         {
-                            GetListMethods.Add(listType, CreateGetListMethod(listType));
+                            if (!GetListMethods.ContainsKey(methodType))
+                            {
+                                GetListMethods.Add(methodType, CreateGetTemplateListMethod());
+                            }
+                            return CreateTemplateListReadStatements(parameterName, listType);
                         }
-                        return CreateListReadStatements(parameterName, listType);
+                        else
+                        {
+                            if (!GetListMethods.ContainsKey(listType))
+                            {
+                                GetListMethods.Add(listType, CreateGetListMethod(listType));
+                            }
+                            return CreateListReadStatements(parameterName, listType);
+                        }
                     }
                 case TypeNameType.ArrayType:
                     {
@@ -859,6 +927,34 @@ namespace JsonConverterBuilder.csharp
         }
 
 
+        private MethodDeclarationSyntax CreateWriteListMethod()
+        {
+            return MethodDeclaration(ParseTypeName("void"),
+                "WriteList<T>")
+                .WithModifiers(TokenList(
+                  SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                  SyntaxFactory.Token(SyntaxKind.StaticKeyword)
+                  ))
+                .WithParameterList(ParameterList(SeparatedList(
+                  new List<ParameterSyntax>() {
+                    Parameter(Identifier("writer")).WithType(IdentifierName("Utf8JsonWriter")),
+                    Parameter(Identifier("propertyName")).WithType(IdentifierName("string")),
+                    Parameter(Identifier("values")).WithType(IdentifierName("List<T>")),
+                    Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions")),
+                    Parameter(Identifier("converter")).WithType(IdentifierName("JsonConverter<T>"))
+                  }
+                )))
+                .WithBody(Block(ParseStatement(@"writer.WritePropertyName(propertyName);").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement(@"writer.WriteStartArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement(@"foreach (T value in values)
+            {
+                converter.Write(writer,value,options);
+            }").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+            ParseStatement(@"writer.WriteEndArray();").WithTrailingTrivia(ElasticCarriageReturnLineFeed)
+            ));
+        }
+
+
         private MethodDeclarationSyntax CreateWriteDictionaryMethod()
         {
             return MethodDeclaration(ParseTypeName("void"),
@@ -913,6 +1009,41 @@ namespace JsonConverterBuilder.csharp
               .WithBody(Block(ParseStatement($@"{objType}JsonConverter converter = new {objType}JsonConverter();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
             ParseStatement($@"return converter.Read(ref reader, typeof({objType}), options);").WithTrailingTrivia(ElasticCarriageReturnLineFeed).WithLeadingTrivia(Whitespace("            "))
             ));
+        }
+
+        private MethodDeclarationSyntax CreateGetTemplateListMethod()
+        {
+            return MethodDeclaration(
+               ParseTypeName("List<T>"), "ReadList<T>")
+            .WithModifiers(TokenList(
+                SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                SyntaxFactory.Token(SyntaxKind.StaticKeyword)
+                )
+            )
+            .WithParameterList(ParameterList(SeparatedList(
+                new List<ParameterSyntax>() {
+                    Parameter(Identifier("reader")).WithModifiers(TokenList(Token(SyntaxKind.RefKeyword))).WithType(IdentifierName("Utf8JsonReader")),
+                    Parameter(Identifier("options")).WithType(IdentifierName("JsonSerializerOptions")),
+                    Parameter(Identifier("converter")).WithType(IdentifierName("JsonConverter<T>"))
+                }
+            )))
+            .WithBody(Block(
+          ParseStatement($@"List<T> lst = new List<T>();").WithTrailingTrivia(ElasticCarriageReturnLineFeed),
+          ParseStatement($@"while (true)
+            {{
+                reader.Read();
+                switch (reader.TokenType)
+                {{
+                    case JsonTokenType.StartArray:
+                        break;
+                    case JsonTokenType.EndArray:
+                        return lst;
+                    default:
+                        lst.Add(converter.Read(ref reader, typeof(T), options));
+                        break;
+                }}
+            }}").WithTrailingTrivia(CarriageReturnLineFeed)          
+          ));
         }
 
 
@@ -1048,6 +1179,13 @@ namespace JsonConverterBuilder.csharp
             return new SyntaxList<StatementSyntax>(statements);
         }
 
+        private SyntaxList<StatementSyntax> CreateTemplateListReadStatements(string parameterName, string typeName)
+        {
+            List<StatementSyntax> statements = new List<StatementSyntax>();
+            statements.Add(ParseStatement($"{parameterName} = ReadList<{typeName}>(ref reader, options, new {typeName}JsonConverter());").WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+            statements.Add(BreakStatement().WithLeadingTrivia(ElasticCarriageReturnLineFeed));
+            return new SyntaxList<StatementSyntax>(statements);
+        }
 
         private SyntaxList<StatementSyntax> CreateListReadStatements(string parameterName, string typeName)
         {
@@ -1113,6 +1251,8 @@ namespace JsonConverterBuilder.csharp
                 case "float?" : return $"float.Parse({stringParameterName})";
                 case "bool": return $"bool.Parse({stringParameterName})";
                 case "bool?": return $"bool.Parse({stringParameterName})";
+                case "Boolean": return $"bool.Parse({stringParameterName})";
+                case "Boolean?": return $"bool.Parse({stringParameterName})";
                 case "DateTime?" : return $"DateTime.Parse({stringParameterName})";
                 case "DateTime" : return $"DateTime.Parse({stringParameterName})";
                     default: return stringParameterName;
@@ -1138,11 +1278,40 @@ namespace JsonConverterBuilder.csharp
                 case "float?": return "GetFloat";
                 case "bool": return "GetBoolean";
                 case "bool?": return "GetBoolean";
+                case "Boolean": return "GetBoolean";
+                case "Boolean?": return "GetBoolean";
                 case "DateTime?": return "GetString";
                 case "DateTime": return "GetString";
                 default : return "Get" + CapitalizeFirstLetterAndShortenTypename(getTypeName);
             };
         }
+
+        private string GetListReadProviderTypeTranslation(string getTypeName)
+        {
+            switch (getTypeName)
+            {
+                case "int": return getTypeName;
+                case "int?": return getTypeName;
+                case "string": return getTypeName;
+                case "string?": return getTypeName;
+                case "String": return getTypeName;
+                case "String?": return getTypeName;
+                case "double": return getTypeName;
+                case "double?": return getTypeName;
+                case "decimal": return getTypeName;
+                case "decimal?": return getTypeName;
+                case "float": return getTypeName;
+                case "float?": return getTypeName;
+                case "bool": return getTypeName;
+                case "bool?": return getTypeName;
+                case "Boolean": return getTypeName;
+                case "Boolean?": return getTypeName;
+                case "DateTime?": return getTypeName;
+                case "DateTime": return getTypeName;
+                default: return "Template";
+            };
+        }
+
 
         private object CapitalizeFirstLetterAndShortenTypename(string typeName)
         {

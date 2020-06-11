@@ -11,9 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonConverterBuilder.csharp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleJsonConverterCode", "SampleJsonConverterCode\SampleJsonConverterCode.csproj", "{E930BF5C-B0BF-49F0-94C8-1EFF65D94AE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonConverterWriter", "JsonConverterWriter\JsonConverterWriter\JsonConverterWriter.csproj", "{4ACC5A9B-975E-439F-950B-A8B69EE6F11D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonConverterWriter", "JsonConverterWriter\JsonConverterWriter\JsonConverterWriter.csproj", "{4ACC5A9B-975E-439F-950B-A8B69EE6F11D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonConverterWriter.Vsix", "JsonConverterWriter\JsonConverterWriter.Vsix\JsonConverterWriter.Vsix.csproj", "{B84C5C48-17F4-4382-BE32-B5F83246B9EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleCodeBeforeConversion", "SampleCodeBeforeConversion\SampleCodeBeforeConversion.csproj", "{AB311446-44CA-4ECD-A98B-10A44FA21B4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{B84C5C48-17F4-4382-BE32-B5F83246B9EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B84C5C48-17F4-4382-BE32-B5F83246B9EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B84C5C48-17F4-4382-BE32-B5F83246B9EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

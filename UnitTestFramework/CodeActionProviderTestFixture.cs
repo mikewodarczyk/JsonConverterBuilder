@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Simplification;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Roslyn.UnitTestFramework
 {
@@ -34,7 +35,7 @@ namespace Roslyn.UnitTestFramework
                 .GetDocument(documentId);
         }
 
-        protected void VerifyDocument(string expected, bool compareTokens, Document document)
+        protected void VerifyDocument(string expected, bool compareTokens, Document document,ITestOutputHelper output)
         {
             if (compareTokens)
             {
@@ -42,7 +43,7 @@ namespace Roslyn.UnitTestFramework
             }
             else
             {
-                VerifyText(expected, document);
+                VerifyText(expected, document, output);
             }
         }
 
@@ -81,9 +82,15 @@ namespace Roslyn.UnitTestFramework
             return true;
         }
 
-        private bool VerifyText(string expected, Document document)
+        private bool VerifyText(string expected, Document document, ITestOutputHelper output)
         {
             string actual = Format(document).ToString();
+            output?.WriteLine("Expected ======== ");
+            output?.WriteLine(expected);
+            output?.WriteLine("End Expected ======== ");
+            output?.WriteLine("Actual ======== ");
+            output?.WriteLine(actual);
+            output?.WriteLine("End Actual ======== ");
             Assert.Equal(expected, actual);
             return true;
         }
