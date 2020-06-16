@@ -21,6 +21,12 @@ namespace Roslyn.UnitTestFramework
             return System.IO.File.ReadAllText(path).Replace("/*[|*/","[|").Replace("/*|]*/","|]");
         }
 
+        protected string GetExpectedResultFileContents(string project, string shortFilename)
+        {
+            string path = $"../../../../{project}/{shortFilename}";
+            return System.IO.File.ReadAllText(path);
+        }
+
 
         protected string GetExpectedResultFileContents(string shortFilename)
         {

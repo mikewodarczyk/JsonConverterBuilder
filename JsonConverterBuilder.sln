@@ -15,7 +15,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonConverterWriter", "Json
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonConverterWriter.Vsix", "JsonConverterWriter\JsonConverterWriter.Vsix\JsonConverterWriter.Vsix.csproj", "{B84C5C48-17F4-4382-BE32-B5F83246B9EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleCodeBeforeConversion", "SampleCodeBeforeConversion\SampleCodeBeforeConversion.csproj", "{AB311446-44CA-4ECD-A98B-10A44FA21B4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleCodeBeforeConversion", "SampleCodeBeforeConversion\SampleCodeBeforeConversion.csproj", "{AB311446-44CA-4ECD-A98B-10A44FA21B4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EqualityCompareRefactoring", "EqualityCompareRefactoring\EqualityCompareRefactoring.csproj", "{22F795D8-B1DC-4247-87BD-89EC0AFAB4B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleEqualityCompareRefactoringOutput", "SampleEqualityCompareRefactoringOutput\SampleEqualityCompareRefactoringOutput.csproj", "{3167859C-4729-4C82-8FD2-A2FB3374FA96}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EqualityCompareRefactor.csharp.tests", "EqualityCompareRefactor.csharp.tests\EqualityCompareRefactor.csharp.tests.csproj", "{4A8075AF-E2B6-4129-81A6-AD2A2AC5635F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +57,18 @@ Global
 		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB311446-44CA-4ECD-A98B-10A44FA21B4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22F795D8-B1DC-4247-87BD-89EC0AFAB4B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22F795D8-B1DC-4247-87BD-89EC0AFAB4B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22F795D8-B1DC-4247-87BD-89EC0AFAB4B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22F795D8-B1DC-4247-87BD-89EC0AFAB4B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3167859C-4729-4C82-8FD2-A2FB3374FA96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3167859C-4729-4C82-8FD2-A2FB3374FA96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3167859C-4729-4C82-8FD2-A2FB3374FA96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3167859C-4729-4C82-8FD2-A2FB3374FA96}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A8075AF-E2B6-4129-81A6-AD2A2AC5635F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A8075AF-E2B6-4129-81A6-AD2A2AC5635F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A8075AF-E2B6-4129-81A6-AD2A2AC5635F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A8075AF-E2B6-4129-81A6-AD2A2AC5635F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

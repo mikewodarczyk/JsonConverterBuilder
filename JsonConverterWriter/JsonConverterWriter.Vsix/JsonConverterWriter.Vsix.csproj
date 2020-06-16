@@ -66,6 +66,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\EqualityCompareRefactoring\EqualityCompareRefactoring.csproj">
+      <Project>{22F795D8-B1DC-4247-87BD-89EC0AFAB4B5}</Project>
+      <Name>EqualityCompareRefactoring</Name>
+      <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup%3bBuiltProjectOutputGroupDependencies%3bGetCopyToOutputDirectoryItems%3bSatelliteDllsProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+      <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup%3b</IncludeOutputGroupsInVSIXLocalOnly>
+    </ProjectReference>
     <ProjectReference Include="..\..\JsonConverterBuilder.csharp\JsonConverterBuilder.csharp.csproj">
       <Project>{9af0dcfa-ed15-415c-aef5-bc94ed6b494c}</Project>
       <Name>JsonConverterBuilder.csharp</Name>

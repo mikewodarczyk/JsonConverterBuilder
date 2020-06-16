@@ -19,12 +19,13 @@
     </PackageReference>
   </ItemGroup>
 
+
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.6.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.6.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="3.6.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.6.0" PrivateAssets="all" />
-    <ProjectReference Include="..\JsonConverterBuilder.csharp\JsonConverterBuilder.csharp.csproj" />
+    <ProjectReference Include="..\EqualityCompareRefactoring\EqualityCompareRefactoring.csproj" />
     <ProjectReference Include="..\UnitTestFramework\Roslyn.UnitTestFramework.csproj" />
   </ItemGroup>
 
