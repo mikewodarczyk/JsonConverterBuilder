@@ -109,6 +109,16 @@ namespace EqualityCompareRefactoring
             NamespaceDeclarationSyntax result = node;
             if (!result.ContainsDirectives)
             {
+                result = result.WithNamespaceKeyword(
+                Token(
+                TriviaList(
+                    CarriageReturnLineFeed,
+                    Trivia(
+                        NullableDirectiveTrivia(
+                            Token(SyntaxKind.EnableKeyword).WithLeadingTrivia(ElasticSpace),
+                            true)),CarriageReturnLineFeed, CarriageReturnLineFeed),
+                SyntaxKind.NamespaceKeyword,
+                TriviaList()));
                 //result = result.WithNamespaceKeyword(
                 //    result.NamespaceKeyword.WithLeadingTrivia(
                 //        result.NamespaceKeyword.LeadingTrivia.Add(

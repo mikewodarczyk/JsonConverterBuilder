@@ -2,8 +2,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-#nullable enable
-
 namespace SampleJsonConverterCode
 {
     [JsonConverter(typeof(EmptyClassCJsonConverter))]
